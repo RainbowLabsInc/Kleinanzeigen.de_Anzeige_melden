@@ -2,13 +2,14 @@
 // @name          Kleinanzeigen - Anzeige melden (aus der Übersicht)
 // @namespace     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @description   Fügt in der Suchergebnis-Übersicht von Kleinanzeigen.de neben dem Preis einen "Melden"-Button ein. Der offizielle Melden-Dialog öffnet sich in einem Overlay – ohne die Übersicht zu verlassen.
-// @copyright     2026, RainbowLabsInc
+// @author        Rainbowlabs
+// @copyright     2026, Rainbowlabs
 // @license       MIT
-// @version       0.1.0
+// @version       0.1.1
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
 // @downloadURL   https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
-// @match         https://www.kleinanzeigen.de/*
+// @match         https://www.kleinanzeigen.de/s-*
 // @grant         none
 // @run-at        document-idle
 // ==/UserScript==
@@ -59,6 +60,11 @@
         // Ungeprüft – Kleinanzeigen-Wortlaut bitte bei Bedarf ergänzen.
         successText: /(vielen dank|danke für (deine|ihre) meldung|erfolgreich gemeldet|meldung (wurde )?(erhalten|gesendet|übermittelt))/i,
     };
+
+    // Nur auf kleinanzeigen.de laufen – zusätzlich zu @match, falls der Script-Manager
+    // die Header ignoriert oder das Script manuell mit breiteren Regeln eingebunden wird.
+    const ALLOWED_HOST = 'www.kleinanzeigen.de';
+    if (window.location.protocol !== 'https:' || window.location.hostname !== ALLOWED_HOST) return;
 
     const path = window.location.pathname;
     const isDetailPage = path.startsWith('/s-anzeige/');

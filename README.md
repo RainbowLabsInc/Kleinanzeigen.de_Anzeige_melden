@@ -1,7 +1,7 @@
 # 🚩 Kleinanzeigen – Anzeige melden (direkt aus der Übersicht)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-0.1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-0.1.1-blue.svg)]()
 [![Plattform](https://img.shields.io/badge/Plattform-Kleinanzeigen.de-green.svg)]()
 
 Ein Userscript für **Kleinanzeigen.de**, das in der Suchergebnis-Übersicht direkt neben dem Preis einen **„Melden“-Button** einfügt.
@@ -61,7 +61,7 @@ Alle Selektoren und Texte, an denen sich das Script orientiert, stehen gesammelt
 
 ---
 
-## ⚠️ Stand & bekannte Grenzen (v0.1.0)
+## ⚠️ Stand & bekannte Grenzen (v0.1.x)
 
 Diese erste Version wurde **nur gegen eine nachgebaute Testseite** geprüft, nicht gegen die Live-Seite von Kleinanzeigen. Diese Punkte sind deshalb noch ungeprüft:
 
@@ -93,10 +93,11 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 * Es liest keine Passwörter oder Nachrichten aus.
 * Es nutzt keine externen Server, alles läuft lokal in deinem Browser.
+* Es läuft **ausschließlich auf `https://www.kleinanzeigen.de`**, und dort nur auf Such- und Anzeigenseiten (`/s-…`). Auf allen anderen Websites ist es inaktiv.
 * Inspiriert vom Aufbau des Userscripts [Kleinanzeigen.de – Anzeige duplizieren & neu einstellen](https://github.com/Zer089/Kleinanzeigen.de-Anzeige_duplizieren_neu_einstellen) von Zer089 (MIT).
 
 ---
 
 ## 📜 Lizenz
 
-[MIT](LICENSE) © 2026 RainbowLabsInc
+[MIT](LICENSE) © 2026 Rainbowlabs
