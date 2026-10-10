@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.2.1
+// @version       0.2.2
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
 // @downloadURL   https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -67,6 +67,8 @@
         ],
         // Heuristik: Texte, die nach erfolgreichem Absenden erscheinen könnten.
         // Ungeprüft – Kleinanzeigen-Wortlaut bitte bei Bedarf ergänzen.
+        // Beschriftung des Absenden-Buttons im Melden-Dialog
+        submitText: /(absenden|abschicken|senden|melden)/i,
         successText: /(vielen dank|danke für (deine|ihre) meldung|erfolgreich gemeldet|meldung (wurde )?(erhalten|gesendet|übermittelt))/i,
     };
 
@@ -192,18 +194,45 @@
         function watchDialog(dialog) {
             let finished = false;
             let closing = false;
+            let submitted = false;
+
+            // Popup schließen – egal ob gemeldet oder abgebrochen. Die Übersicht fragt
+            // selbst nach, falls keine Meldung erkannt wurde.
             const finish = (success) => {
                 if (finished) return;
                 finished = true;
                 obs.disconnect();
+                document.removeEventListener('click', onClick, true);
+                document.removeEventListener('submit', onSubmit, true);
                 document.documentElement.classList.remove('klm-focus');
                 post('closed', { success });
-                if (success && target) setTimeout(() => window.close(), 1500);
+                if (target) setTimeout(() => window.close(), success ? 1500 : 300);
             };
 
+            // Klick auf "Absenden"/"Melden" im Dialog merken
+            const onClick = (e) => {
+                const btn = e.target.closest('button, [type="submit"], [role="button"]');
+                if (btn && dialog.contains(btn) && CONFIG.submitText.test(btn.textContent || btn.value || '')) {
+                    submitted = true;
+                }
+            };
+            const onSubmit = (e) => { if (dialog.contains(e.target)) submitted = true; };
+            document.addEventListener('click', onClick, true);
+            document.addEventListener('submit', onSubmit, true);
+
+            // Nach dem Absenden zeigt der Dialog eine Bestätigung ohne Eingabefelder
+            const showsConfirmation = () => submitted && isVisible(dialog)
+                && !Array.from(dialog.querySelectorAll('input:not([type="hidden"]), textarea, select')).some(isVisible);
+
             const obs = new MutationObserver(() => {
-                if (closing) return;
-                if (pageShowsSuccess()) post('success');
+                if (closing || finished) return;
+                // Erfolg, während der Dialog noch offen ist (Danke-Text oder Bestätigungsansicht)
+                if (pageShowsSuccess() || showsConfirmation()) {
+                    closing = true;
+                    post('success');
+                    finish(true);
+                    return;
+                }
                 // Dialog geschlossen? (entfernt oder unsichtbar, und kein neuer Dialog offen)
                 if (!isVisible(dialog)) {
                     const next = findDialog();
@@ -218,7 +247,7 @@
                     // dann kurz warten – eine Erfolgsmeldung kann erst nach dem Schließen erscheinen
                     closing = true;
                     document.documentElement.classList.remove('klm-focus');
-                    setTimeout(() => finish(pageShowsSuccess()), 1200);
+                    setTimeout(() => finish(submitted || pageShowsSuccess()), 1200);
                 }
             });
             obs.observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
