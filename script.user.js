@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.3.0
+// @version       0.3.1
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -32,9 +32,9 @@
  * Es wird KEIN eigener/inoffizieller Server-Request gesendet – die Meldung läuft
  * ausschließlich über den originalen Dialog von Kleinanzeigen.
  *
- * Hinweis: Die Selektoren für Karten, Preis und Melden-Dialog sind bewusst
- * text-/strukturbasiert gehalten, weil Kleinanzeigen das Frontend häufig ändert.
- * Sie sind in CONFIG gesammelt und können dort angepasst werden.
+ * Hinweis: Kleinanzeigen ändert das Frontend häufig. Das Script sucht Elemente daher
+ * zuerst über feste Merkmale (z. B. die ID des Melden-Buttons) und fällt sonst auf
+ * Text und Struktur zurück. Alle Selektoren und Texte stehen gesammelt in CONFIG.
  */
 
 (function () {
@@ -66,10 +66,10 @@
             '.mfp-content',
             '.modal-dialog',
         ],
-        // Heuristik: Texte, die nach erfolgreichem Absenden erscheinen könnten.
-        // Ungeprüft – Kleinanzeigen-Wortlaut bitte bei Bedarf ergänzen.
         // Beschriftung des Absenden-Buttons im Melden-Dialog
         submitText: /(absenden|abschicken|senden|melden)/i,
+        // Texte, die nach erfolgreichem Absenden erscheinen können (zusätzlich zur
+        // Erkennung der Bestätigungsansicht ohne Eingabefelder)
         successText: /(vielen dank|danke für (deine|ihre) meldung|erfolgreich gemeldet|meldung (wurde )?(erhalten|gesendet|übermittelt))/i,
     };
 
@@ -126,7 +126,7 @@
     // Teil 1: Detailseite im Popup – Melden-Dialog automatisch öffnen
     // ------------------------------------------------------------------
 
-    function runReportFrame() {
+    function runReportPopup() {
         const target = window.opener;
         const adId = getAdIdFromUrl(window.location.href);
 
@@ -258,7 +258,6 @@
         }
 
         (async () => {
-            post('loading');
             const trigger = await waitFor(findTrigger, CONFIG.triggerTimeoutMs);
             if (!trigger) {
                 post('trigger-not-found');
@@ -322,7 +321,7 @@
             }
             .klm-logo { width: 20px; height: 20px; border-radius: 5px; flex: none; display: block; margin-left: -6px; }
             .klm-btn:hover, .klm-btn:focus-visible { border-color: #c62828; color: #c62828; background: #fdecea; outline: none; }
-            .klm-btn[data-state="reported"] { border-color: #a5d6a7; color: #2e7d32; background: #edf7ee; cursor: default; }
+            .klm-btn[data-state="reported"] { border-color: #a5d6a7; color: #2e7d32; background: #edf7ee; }
             .klm-btn[data-state="busy"] { opacity: .6; cursor: progress; }
 
             .klm-toast {
@@ -582,7 +581,7 @@
 
     const isReportPopup = window.location.hash === CONFIG.hash || (window.name === CONFIG.popupName && !!window.opener);
     if (isDetailPage && isReportPopup) {
-        runReportFrame();
+        runReportPopup();
     } else if (isSearchPage && window.top === window.self) {
         runOverview();
     }
