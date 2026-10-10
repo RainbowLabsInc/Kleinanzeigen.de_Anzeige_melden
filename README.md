@@ -6,7 +6,7 @@
 
 **Unsaubere Anzeigen direkt aus der Suchergebnis-Übersicht melden, mit einem Klick und ohne die Liste zu verlassen.**
 
-[![Version](https://img.shields.io/badge/version-0.4.1-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+[![Version](https://img.shields.io/badge/version-0.4.2-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
 [![Plattform](https://img.shields.io/badge/plattform-Kleinanzeigen.de-green?style=flat-square)](https://www.kleinanzeigen.de)
 [![Userscript](https://img.shields.io/badge/Tampermonkey-Violentmonkey-black?style=flat-square&logo=tampermonkey)](#%EF%B8%8F-installation)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
@@ -46,7 +46,7 @@ Es gibt das Script in zwei Varianten. Beide setzen denselben Button neben den Pr
 | Grund und Text | fertige, selbst konfigurierbare Bausteine | wählst du jedes Mal im Dialog |
 | Anfragen an Kleinanzeigen | sendet die Meldung selbst, genau wie der Dialog | sendet selbst nichts, alles läuft über den Dialog |
 | Gründe | direkt: „Verdächtiger oder betrügerischer Inhalt“; alle anderen über den offiziellen Dialog | alle |
-| Version | 0.4.1 | 0.3.2 |
+| Version | 0.4.2 | 0.3.2 |
 
 **Installiere bitte nur eine der beiden.** Sind doch beide aktiv, arbeitet nur die zuerst gestartete, die andere bleibt still. Die „Gemeldet“-Markierungen teilen sich beide, ein Wechsel geht also nichts verloren.
 
@@ -152,6 +152,7 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 | Version | Änderungen |
 |---|---|
+| **0.4.2** | Bausteine: Bei abgelehnter Meldung zeigt das Menü die Antwort von Kleinanzeigen und nennt „schon gemeldet“ als mögliche Ursache |
 | **0.4.1** | Zweite Variante „Offizieller Dialog“ (`script-offiziell.user.js`, 0.3.2) zur freien Wahl; sind beide installiert, bleibt eine inaktiv |
 | **0.4.0** | Melden direkt in der Übersicht über ein Menü mit selbst konfigurierbaren Bausteinen; offizieller Dialog bleibt als Rückfall |
 | **0.3.1** | Aufgeräumt: Kommentare, Benennung und Kleinigkeiten im Code, „Gemeldet“-Button erneut anklickbar |

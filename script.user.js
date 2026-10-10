@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.4.1
+// @version       0.4.2
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -656,7 +656,14 @@
             headers: { 'Content-Type': 'application/json', 'x-csrf-token': token },
             body: JSON.stringify([{ reasonId, text, userName, anonymousExplicitContentReport: false }]),
         });
-        return res.status;
+        // Antworttext für die Fehleranzeige (gekürzt, ohne HTML-Tags)
+        let detail = '';
+        if (!res.ok) {
+            try {
+                detail = (await res.text()).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+            } catch (e) { /* egal */ }
+        }
+        return { code: res.status, detail };
     }
 
     // ------------------------------------------------------------------
@@ -792,9 +799,9 @@
             update();
             showStatus('Meldung wird gesendet …');
             const userName = name.value.trim();
-            let code = 0;
+            let code = 0, detail = '';
             try {
-                code = await sendReport(info.adId, { reasonId: selected.reasonId, text: text.value.trim(), userName, token });
+                ({ code, detail } = await sendReport(info.adId, { reasonId: selected.reasonId, text: text.value.trim(), userName, token }));
             } catch (e) { code = 0; }
             if (!menu || menu.root !== root) return;
             if (code >= 200 && code < 300) {
@@ -807,11 +814,12 @@
             }
             sending = false;
             update();
+            const server = detail ? ` Antwort von Kleinanzeigen: „${detail}“` : '';
             showStatus(code === 0
                 ? 'Die Meldung konnte nicht gesendet werden (Netzwerkfehler). Du kannst es erneut versuchen oder den offiziellen Dialog nutzen.'
                 : code === 401 || code === 403
-                    ? `Kleinanzeigen hat die Meldung abgelehnt (Status ${code}). Bist du eingeloggt? Sonst bitte den offiziellen Dialog nutzen.`
-                    : `Kleinanzeigen hat die Meldung abgelehnt (Status ${code}). Bitte den offiziellen Dialog nutzen.`, 'error');
+                    ? `Kleinanzeigen hat die Meldung abgelehnt (Status ${code}). Mögliche Gründe: Du hast diese Anzeige schon gemeldet, oder du bist nicht eingeloggt.${server}`
+                    : `Kleinanzeigen hat die Meldung abgelehnt (Status ${code}). Bitte den offiziellen Dialog nutzen.${server}`, 'error');
         });
 
         const reportedAt = loadReported()[info.adId];
