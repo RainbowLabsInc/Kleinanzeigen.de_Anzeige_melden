@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name          Kleinanzeigen - Anzeige melden (aus der Übersicht)
 // @namespace     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
-// @description   Fügt in der Suchergebnis-Übersicht von Kleinanzeigen.de neben dem Preis einen "Melden"-Button ein. Der offizielle Melden-Dialog öffnet sich in einem Overlay – ohne die Übersicht zu verlassen.
+// @description   Fügt in der Suchergebnis-Übersicht von Kleinanzeigen.de neben dem Preis einen "Melden"-Button ein. Der offizielle Melden-Dialog öffnet sich in einem kleinen Popup-Fenster – die Übersicht bleibt offen.
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.1.2
+// @version       0.2.0
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
 // @downloadURL   https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -19,13 +19,14 @@
  * --------------
  * 1. Übersicht (Suchergebnisse, /s-...):
  *    Jede Anzeigen-Karte bekommt neben dem Preis einen "Melden"-Button.
- *    Ein Klick öffnet ein Overlay mit einem iframe auf die Detailseite der Anzeige
- *    (URL-Hash #klm-report). Die Übersicht bleibt dabei unverändert offen.
+ *    Ein Klick öffnet die Anzeige in einem kleinen Popup-Fenster (URL-Hash #klm-report).
+ *    Die Übersicht bleibt dabei unverändert offen. (Ein eingebettetes iframe ist nicht
+ *    möglich: Kleinanzeigen verbietet das Einbetten seiner Seiten per X-Frame-Options/CSP.)
  *
- * 2. Detailseite im iframe (/s-anzeige/...#klm-report):
- *    Das gleiche Script läuft auch im iframe. Es sucht den offiziellen
- *    "Anzeige melden"-Button, klickt ihn und blendet alles außer dem Melden-Dialog aus.
- *    Status-Meldungen gehen per postMessage an die Übersicht zurück.
+ * 2. Detailseite im Popup (/s-anzeige/...#klm-report):
+ *    Das Script sucht den offiziellen "Anzeige melden"-Button, klickt ihn und blendet
+ *    alles außer dem Melden-Dialog aus. Status-Meldungen gehen per postMessage an die
+ *    Übersicht zurück; nach erfolgreichem Absenden schließt sich das Popup selbst.
  *
  * Es wird KEIN eigener/inoffizieller Server-Request gesendet – die Meldung läuft
  * ausschließlich über den originalen Dialog von Kleinanzeigen.
@@ -42,9 +43,11 @@
         hash: '#klm-report',
         msgType: 'klm-report',
         storageKey: 'klm-reported-ads',
-        // Wie lange auf die Detailseite / den Melden-Button gewartet wird
-        frameTimeoutMs: 15000,
+        // Wie lange auf den Melden-Button / -Dialog gewartet wird
         triggerTimeoutMs: 10000,
+        // Größe des Popup-Fensters
+        popupWidth: 600,
+        popupHeight: 780,
         // Text des offiziellen Melden-Links/Buttons auf der Detailseite
         triggerText: /^\s*(anzeige\s+)?melden\s*$/i,
         triggerTextLoose: /anzeige\s+melden/i,
@@ -69,7 +72,6 @@
     const path = window.location.pathname;
     const isDetailPage = path.startsWith('/s-anzeige/');
     const isSearchPage = path.startsWith('/s-') && !isDetailPage;
-    const isInFrame = window.top !== window.self;
 
     // ------------------------------------------------------------------
     // Gemeinsame Helfer
@@ -109,11 +111,11 @@
     const checkSvg = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 
     // ------------------------------------------------------------------
-    // Teil 1: Detailseite im iframe / Popup – Melden-Dialog automatisch öffnen
+    // Teil 1: Detailseite im Popup – Melden-Dialog automatisch öffnen
     // ------------------------------------------------------------------
 
     function runReportFrame() {
-        const target = isInFrame ? window.parent : window.opener;
+        const target = window.opener;
         const adId = getAdIdFromUrl(window.location.href);
 
         function post(status, extra = {}) {
@@ -174,7 +176,7 @@
                 obs.disconnect();
                 document.documentElement.classList.remove('klm-focus');
                 post('closed', { success });
-                if (!isInFrame && success) setTimeout(() => window.close(), 1500);
+                if (success && target) setTimeout(() => window.close(), 1500);
             };
 
             const obs = new MutationObserver(() => {
@@ -224,7 +226,7 @@
     }
 
     // ------------------------------------------------------------------
-    // Teil 2: Übersicht – Melden-Buttons einfügen + Overlay
+    // Teil 2: Übersicht – Melden-Buttons einfügen + Popup steuern
     // ------------------------------------------------------------------
 
     function runOverview() {
@@ -239,7 +241,7 @@
         injectButtons();
         new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
 
-        window.addEventListener('message', onFrameMessage);
+        window.addEventListener('message', onPopupMessage);
     }
 
     function injectOverviewStyles() {
@@ -260,32 +262,22 @@
             .klm-btn[data-state="reported"] { border-color: #a5d6a7; color: #2e7d32; background: #edf7ee; cursor: default; }
             .klm-btn[data-state="busy"] { opacity: .6; cursor: progress; }
 
-            .klm-overlay {
-                position: fixed; inset: 0; z-index: 2147483000;
-                background: rgba(0,0,0,.45);
-                display: flex; align-items: center; justify-content: center;
-                padding: 16px;
+            .klm-toast {
+                position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+                z-index: 2147483000; max-width: min(560px, calc(100vw - 32px));
+                display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+                padding: 10px 14px; border-radius: 10px;
+                background: #1e1e1e; color: #fff; font: inherit; font-size: 14px; line-height: 1.4;
+                box-shadow: 0 8px 24px rgba(0,0,0,.25);
             }
-            .klm-modal {
-                background: #fff; color: #1e1e1e; border-radius: 12px;
-                width: min(560px, 100%); height: min(760px, 100%);
-                display: flex; flex-direction: column; overflow: hidden;
-                box-shadow: 0 12px 40px rgba(0,0,0,.3);
-                font-family: inherit;
+            .klm-toast[data-kind="ok"] { background: #2e7d32; }
+            .klm-toast[data-kind="warn"] { background: #8a4b00; }
+            .klm-toast-text { flex: 1 1 220px; }
+            .klm-toast button {
+                padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,.6);
+                background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer;
             }
-            .klm-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #eee; }
-            .klm-title { flex: 1; font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .klm-x { border: 0; background: transparent; font-size: 22px; line-height: 1; cursor: pointer; color: #666; padding: 4px 8px; }
-            .klm-status { padding: 8px 16px; font-size: 13px; background: #f6f6f3; color: #444; }
-            .klm-status[data-kind="warn"] { background: #fff4e5; color: #8a4b00; }
-            .klm-status[data-kind="ok"] { background: #edf7ee; color: #2e7d32; }
-            .klm-frame { flex: 1; width: 100%; border: 0; background: #fff; }
-            .klm-foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 10px 16px; border-top: 1px solid #eee; }
-            .klm-foot button {
-                padding: 6px 12px; border-radius: 8px; border: 1px solid #d0d0cc; background: #fff;
-                font: inherit; font-size: 13px; cursor: pointer;
-            }
-            .klm-foot button:hover { background: #f3f3f0; }
+            .klm-toast button:hover { background: rgba(255,255,255,.15); }
         `;
         document.head.appendChild(style);
     }
@@ -379,7 +371,7 @@
             btn.addEventListener('click', (e) => {
                 stop(e);
                 if (btn.dataset.state === 'busy') return;
-                openReportOverlay(info, btn);
+                openReportPopup(info, btn);
             });
 
             const wrap = document.createElement('span');
@@ -402,144 +394,132 @@
     }
 
     // ------------------------------------------------------------------
-    // Overlay
+    // Popup + Statusleiste
     // ------------------------------------------------------------------
 
-    let current = null; // { overlay, frame, info, btn, timer, popup }
+    let current = null; // { info, btn, popup, poll, done }
 
-    function openReportOverlay(info, btn) {
-        closeOverlay();
+    function openReportPopup(info, btn) {
+        finishCurrent();
 
-        const reportUrl = info.href.split('#')[0] + CONFIG.hash;
+        const url = info.href.split('#')[0] + CONFIG.hash;
+        const w = CONFIG.popupWidth, h = CONFIG.popupHeight;
+        const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - w) / 2));
+        const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - h) / 2));
+        // Muss direkt im Klick-Handler passieren, sonst blockiert der Browser das Popup
+        const popup = window.open(url, 'klm-report', `popup=yes,width=${w},height=${h},left=${left},top=${top}`);
 
-        const overlay = document.createElement('div');
-        overlay.className = 'klm-overlay';
-        overlay.innerHTML = `
-            <div class="klm-modal" role="dialog" aria-modal="true" aria-label="Anzeige melden">
-                <div class="klm-head">
-                    <span class="klm-title"></span>
-                    <button type="button" class="klm-x" aria-label="Schließen">×</button>
-                </div>
-                <div class="klm-status">Anzeige wird geladen …</div>
-                <iframe class="klm-frame" title="Anzeige melden"></iframe>
-                <div class="klm-foot">
-                    <button type="button" data-act="popup">Im Popup öffnen</button>
-                    <button type="button" data-act="mark">Als gemeldet markieren</button>
-                    <button type="button" data-act="close">Schließen</button>
-                </div>
-            </div>`;
-        overlay.querySelector('.klm-title').textContent = 'Melden: ' + (info.title || 'Anzeige ' + info.adId);
+        if (!popup) {
+            showToast('Popup wurde vom Browser blockiert. Bitte Popups für kleinanzeigen.de erlauben.', 'warn', [
+                { label: 'In neuem Tab öffnen', onClick: () => { window.open(url, '_blank'); hideToast(); } },
+            ]);
+            return;
+        }
+        try { popup.focus(); } catch (e) { /* egal */ }
 
-        const frame = overlay.querySelector('.klm-frame');
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) closeOverlay();
-            const act = e.target.closest('[data-act]')?.dataset.act;
-            if (act === 'close') closeOverlay();
-            if (act === 'mark') markReported();
-            if (act === 'popup') openPopup(reportUrl);
-        });
-        overlay.querySelector('.klm-x').addEventListener('click', closeOverlay);
-        document.addEventListener('keydown', onKeydown);
-
-        document.body.appendChild(overlay);
-        setButtonState(btn, btn.dataset.state === 'reported' ? 'reported' : 'idle');
         btn.dataset.state = 'busy';
+        current = { info, btn, popup, done: false, poll: null };
+        showToast(`Melden-Fenster geöffnet: ${info.title || 'Anzeige ' + info.adId}`);
 
-        current = { overlay, frame, info, btn, timer: null, popup: null, gotMessage: false };
-
-        current.timer = setTimeout(() => {
-            if (current && !current.gotMessage) {
-                setStatus('Die Anzeige konnte im Overlay nicht geladen werden (evtl. blockiert Kleinanzeigen die Einbettung). Nutze „Im Popup öffnen“.', 'warn');
-            }
-        }, CONFIG.frameTimeoutMs);
-
-        frame.src = reportUrl;
+        // Erkennen, wenn der Nutzer das Popup selbst schließt
+        current.poll = setInterval(() => {
+            if (!current || !current.popup.closed) return;
+            const c = current;
+            finishCurrent();
+            if (!c.done) askMarkReported(c.info);
+        }, 500);
     }
 
-    function openPopup(url) {
+    function finishCurrent() {
         if (!current) return;
-        const w = 560, h = 760;
-        const left = Math.max(0, window.screenX + (window.outerWidth - w) / 2);
-        const top = Math.max(0, window.screenY + (window.outerHeight - h) / 2);
-        current.popup = window.open(url, 'klm-report', `width=${w},height=${h},left=${left},top=${top}`);
-        current.frame.src = 'about:blank';
-        setStatus('Melden-Dialog wurde in einem Popup-Fenster geöffnet.');
-    }
-
-    function setStatus(text, kind) {
-        if (!current) return;
-        const el = current.overlay.querySelector('.klm-status');
-        el.textContent = text;
-        if (kind) el.dataset.kind = kind; else delete el.dataset.kind;
-    }
-
-    function markReported() {
-        if (!current) return;
-        saveReported(current.info.adId);
-        document.querySelectorAll(`.klm-btn[data-adid="${current.info.adId}"]`).forEach(b => setButtonState(b, 'reported'));
-        current.reported = true;
-        closeOverlay();
-    }
-
-    function closeOverlay() {
-        if (!current) return;
-        clearTimeout(current.timer);
-        document.removeEventListener('keydown', onKeydown);
-        current.overlay.remove();
+        clearInterval(current.poll);
         if (current.btn.dataset.state === 'busy') {
             setButtonState(current.btn, loadReported()[current.info.adId] ? 'reported' : 'idle');
         }
         current = null;
     }
 
-    function onKeydown(e) {
-        if (e.key === 'Escape') closeOverlay();
+    function markReported(adId) {
+        saveReported(adId);
+        document.querySelectorAll(`.klm-btn[data-adid="${adId}"]`).forEach(b => setButtonState(b, 'reported'));
     }
 
-    function onFrameMessage(e) {
+    function askMarkReported(info) {
+        showToast('Melden-Fenster geschlossen. Hast du die Anzeige gemeldet?', null, [
+            { label: 'Als gemeldet markieren', onClick: () => { markReported(info.adId); hideToast(); } },
+            { label: 'Nein', onClick: hideToast },
+        ], 10000);
+    }
+
+    let toastTimer = null;
+
+    function showToast(text, kind, actions = [], autoHideMs = 0) {
+        hideToast();
+        const toast = document.createElement('div');
+        toast.className = 'klm-toast';
+        toast.setAttribute('role', 'status');
+        if (kind) toast.dataset.kind = kind;
+        const span = document.createElement('span');
+        span.className = 'klm-toast-text';
+        span.textContent = text;
+        toast.appendChild(span);
+        actions.forEach(a => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = a.label;
+            b.addEventListener('click', a.onClick);
+            toast.appendChild(b);
+        });
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.textContent = '×';
+        x.setAttribute('aria-label', 'Hinweis schließen');
+        x.addEventListener('click', hideToast);
+        toast.appendChild(x);
+        document.body.appendChild(toast);
+        if (autoHideMs) toastTimer = setTimeout(hideToast, autoHideMs);
+    }
+
+    function hideToast() {
+        clearTimeout(toastTimer);
+        document.querySelectorAll('.klm-toast').forEach(t => t.remove());
+    }
+
+    function onPopupMessage(e) {
         if (e.origin !== window.location.origin) return;
         const data = e.data;
         if (!data || data.type !== CONFIG.msgType || !current) return;
-        const fromFrame = current.frame && e.source === current.frame.contentWindow;
-        const fromPopup = current.popup && e.source === current.popup;
-        if (!fromFrame && !fromPopup) return;
+        if (e.source !== current.popup) return;
         if (data.adId && data.adId !== current.info.adId) return;
 
-        current.gotMessage = true;
         switch (data.status) {
-            case 'loading':
-                setStatus('Melden-Funktion wird gesucht …');
-                break;
             case 'dialog-open':
-                setStatus('Bitte Grund auswählen und im Dialog absenden.');
+                showToast('Bitte im Melden-Fenster den Grund auswählen und absenden.');
                 break;
             case 'trigger-not-found':
-                setStatus('Der „Anzeige melden“-Button wurde nicht automatisch gefunden. Bitte unten in der Anzeige manuell auf „Melden“ klicken.', 'warn');
+                showToast('„Anzeige melden“ wurde nicht automatisch gefunden – bitte im Fenster manuell auf „Melden“ klicken.', 'warn');
                 break;
             case 'dialog-not-found':
-                setStatus('Der Melden-Dialog wurde nicht erkannt. Bitte in der Anzeige manuell fortfahren.', 'warn');
+                showToast('Der Melden-Dialog wurde nicht erkannt – bitte im Fenster manuell fortfahren.', 'warn');
                 break;
             case 'success':
-                setStatus('Meldung offenbar gesendet.', 'ok');
-                break;
             case 'closed':
-                if (data.success) {
-                    setStatus('Meldung gesendet – Anzeige wird als gemeldet markiert.', 'ok');
-                    setTimeout(markReported, 1000);
-                } else {
-                    // Dialog geschlossen ohne erkannte Erfolgsmeldung: Nutzer entscheidet selbst
-                    setStatus('Dialog geschlossen. Falls du die Meldung abgeschickt hast: „Als gemeldet markieren“ klicken.');
+                if ((data.status === 'success' || data.success) && !current.done) {
+                    current.done = true;
+                    markReported(current.info.adId);
+                    showToast('Anzeige gemeldet.', 'ok', [], 4000);
                 }
                 break;
         }
     }
+
     // ------------------------------------------------------------------
     // Start
     // ------------------------------------------------------------------
 
     if (isDetailPage && window.location.hash === CONFIG.hash) {
         runReportFrame();
-    } else if (isSearchPage && !isInFrame) {
+    } else if (isSearchPage && window.top === window.self) {
         runOverview();
     }
 })();
