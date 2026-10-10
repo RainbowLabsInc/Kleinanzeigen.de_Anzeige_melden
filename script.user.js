@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.4.0
+// @version       0.4.1
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -108,6 +108,15 @@
     // die Header ignoriert oder das Script manuell mit breiteren Regeln eingebunden wird.
     const ALLOWED_HOST = 'www.kleinanzeigen.de';
     if (window.location.protocol !== 'https:' || window.location.hostname !== ALLOWED_HOST) return;
+
+    // Es gibt zwei Varianten dieses Scripts (Bausteine / offizieller Dialog). Sind beide
+    // installiert, arbeitet nur die zuerst gestartete – sonst gäbe es doppelte Buttons und Klicks.
+    const root = document.documentElement;
+    if (root.hasAttribute('data-klm-variant')) {
+        console.warn(`[Anzeige melden] Variante "${root.getAttribute('data-klm-variant')}" ist bereits aktiv, "bausteine" bleibt inaktiv. Bitte nur eine Variante installieren.`);
+        return;
+    }
+    root.setAttribute('data-klm-variant', 'bausteine');
 
     const path = window.location.pathname;
     const isDetailPage = path.startsWith('/s-anzeige/');

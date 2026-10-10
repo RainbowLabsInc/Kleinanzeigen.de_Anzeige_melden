@@ -6,7 +6,7 @@
 
 **Unsaubere Anzeigen direkt aus der Suchergebnis-Übersicht melden, mit einem Klick und ohne die Liste zu verlassen.**
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+[![Version](https://img.shields.io/badge/version-0.4.1-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
 [![Plattform](https://img.shields.io/badge/plattform-Kleinanzeigen.de-green?style=flat-square)](https://www.kleinanzeigen.de)
 [![Userscript](https://img.shields.io/badge/Tampermonkey-Violentmonkey-black?style=flat-square&logo=tampermonkey)](#%EF%B8%8F-installation)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
@@ -36,7 +36,23 @@ Melden kann man sie, aber dafür muss man jede Anzeige öffnen, nach unten scrol
 
 ---
 
-## ✨ Features
+## 🔀 Zwei Varianten zur Wahl
+
+Es gibt das Script in zwei Varianten. Beide setzen denselben Button neben den Preis, sie melden nur auf unterschiedlichem Weg.
+
+| | **Bausteine** (`script.user.js`) | **Offizieller Dialog** (`script-offiziell.user.js`) |
+|---|---|---|
+| Melden | im Menü direkt in der Übersicht, ohne Fenster | im offiziellen Melden-Dialog von Kleinanzeigen, in einem kleinen Popup |
+| Grund und Text | fertige, selbst konfigurierbare Bausteine | wählst du jedes Mal im Dialog |
+| Anfragen an Kleinanzeigen | sendet die Meldung selbst, genau wie der Dialog | sendet selbst nichts, alles läuft über den Dialog |
+| Gründe | direkt: „Verdächtiger oder betrügerischer Inhalt“; alle anderen über den offiziellen Dialog | alle |
+| Version | 0.4.1 | 0.3.2 |
+
+**Installiere bitte nur eine der beiden.** Sind doch beide aktiv, arbeitet nur die zuerst gestartete, die andere bleibt still. Die „Gemeldet“-Markierungen teilen sich beide, ein Wechsel geht also nichts verloren.
+
+---
+
+## ✨ Features (Variante Bausteine)
 
 * 🚩 **Melden-Button in der Übersicht:** Er sitzt in jeder Anzeigen-Karte rechts neben dem Preis, trägt das RainbowlabsInc-Logo und fügt sich ins Kleinanzeigen-Design ein.
 * 🧩 **Melden ohne Fenster:** Ein Klick öffnet ein Menü am Button. Baustein wählen, Text prüfen, bestätigen, melden. Fertig.
@@ -61,13 +77,17 @@ Melden kann man sie, aber dafür muss man jede Anzeige öffnen, nach unten scrol
 
 > **Chrome/Edge:** Bei neueren Tampermonkey-Versionen muss in den Erweiterungs-Details „Benutzerskripte zulassen“ bzw. der Entwicklermodus aktiviert sein.
 
-**Schritt 2: Skript installieren**
+**Schritt 2: Eine Variante installieren**
 
-[![Installieren](https://img.shields.io/badge/Installieren-Skript-00aa00?style=for-the-badge&logo=tampermonkey)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+[![Installieren: Bausteine](https://img.shields.io/badge/Installieren-Bausteine-00aa00?style=for-the-badge&logo=tampermonkey)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+&nbsp;
+[![Installieren: Offizieller Dialog](https://img.shields.io/badge/Installieren-Offizieller%20Dialog-1e6fd9?style=for-the-badge&logo=tampermonkey)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js)
 
-*(Alternativ: Inhalt von `script.user.js` kopieren und in Tampermonkey als neues Skript einfügen.)*
+*(Alternativ: Inhalt von `script.user.js` bzw. `script-offiziell.user.js` kopieren und in Tampermonkey als neues Skript einfügen.)*
 
-Updates holt sich Tampermonkey automatisch aus diesem Repo.
+**Wechseln:** In Tampermonkey die bisherige Variante deaktivieren oder löschen, dann die andere installieren.
+
+Updates holt sich Tampermonkey für jede Variante automatisch aus diesem Repo.
 
 ---
 
@@ -89,6 +109,8 @@ Updates holt sich Tampermonkey automatisch aus diesem Repo.
 | `{link}` | Link zur Anzeige |
 
 Direkt aus dem Menü lassen sich bisher die Unterpunkte von **„Verdächtiger oder betrügerischer Inhalt“** melden: Verdächtiger Preis, Identitätsdiebstahl/-missbrauch, Verdächtiges Verhalten und Anderer Verstoß. Alle anderen Gründe gehen über **„Anderer Grund? Offiziellen Melden-Dialog öffnen“**.
+
+**Variante „Offizieller Dialog“:** Nach dem Klick auf „Melden“ öffnet sich gleich das kleine Fenster mit dem Melden-Dialog von Kleinanzeigen. Dort wählst du den Grund und schickst ab. Das Fenster schließt sich danach von selbst.
 
 > Falls der Browser das Fenster für den offiziellen Dialog blockiert, erscheint unten ein Hinweis. Erlaube dann Popups für `kleinanzeigen.de`, oder öffne die Anzeige über den Hinweis in einem neuen Tab.
 
@@ -113,8 +135,8 @@ Alle Selektoren, Texte, Gründe und Standard-Bausteine stehen gesammelt im `CONF
 
 | Browser | Erweiterung | Stand |
 |---|---|---|
-| Firefox | Tampermonkey | ✅ auf der Live-Seite getestet: Button, Melde-Popup, automatisches Schließen (bis 0.3.1) |
-| Firefox | Tampermonkey | ⏳ Melden-Menü (0.4.0) bisher nur an einer nachgebauten Seite getestet. Das Anfrageformat stammt aus einer echten Meldung über den offiziellen Dialog. |
+| Firefox | Tampermonkey | ✅ auf der Live-Seite getestet: Button, Melde-Popup, automatisches Schließen (bis 0.3.1, entspricht der Variante „Offizieller Dialog“) |
+| Firefox | Tampermonkey | ⏳ Melden-Menü der Variante „Bausteine“ (ab 0.4.0) bisher nur an einer nachgebauten Seite getestet. Das Anfrageformat stammt aus einer echten Meldung über den offiziellen Dialog. |
 | Chrome / Edge | Tampermonkey / Violentmonkey | ⏳ noch nicht getestet, sollte genauso funktionieren |
 
 Kleinanzeigen ändert sein Frontend regelmäßig. Das Script sucht Buttons und Dialoge deshalb zuerst über feste Merkmale (z. B. `#viewad-action-flag-link`) und nutzt als Rückfall die Beschriftung. Funktioniert trotzdem etwas nicht mehr, hilft ein [Issue](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/issues) mit:
@@ -130,6 +152,7 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 | Version | Änderungen |
 |---|---|
+| **0.4.1** | Zweite Variante „Offizieller Dialog“ (`script-offiziell.user.js`, 0.3.2) zur freien Wahl; sind beide installiert, bleibt eine inaktiv |
 | **0.4.0** | Melden direkt in der Übersicht über ein Menü mit selbst konfigurierbaren Bausteinen; offizieller Dialog bleibt als Rückfall |
 | **0.3.1** | Aufgeräumt: Kommentare, Benennung und Kleinigkeiten im Code, „Gemeldet“-Button erneut anklickbar |
 | **0.3.0** | RainbowlabsInc-Logo im Melden-Button und als Script-Icon in Tampermonkey |
@@ -181,6 +204,6 @@ MIT License: frei nutzbar, veränderbar und weitergebbar. Siehe [LICENSE](LICENS
 
 **Made with ❤️ by RainbowlabsInc**
 
-[Installieren](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js) · [Issues](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/issues) · [☕ Spenden](https://ko-fi.com/rainbowlabsinc)
+[Installieren: Bausteine](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js) · [Installieren: Offizieller Dialog](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js) · [Issues](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/issues) · [☕ Spenden](https://ko-fi.com/rainbowlabsinc)
 
 </div>
