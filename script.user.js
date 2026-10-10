@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.2.0
+// @version       0.2.1
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
 // @downloadURL   https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -42,13 +42,19 @@
     const CONFIG = {
         hash: '#klm-report',
         msgType: 'klm-report',
+        // Fenstername des Popups – bleibt erhalten, auch wenn die Seite den URL-Hash entfernt
+        popupName: 'klm-report',
         storageKey: 'klm-reported-ads',
         // Wie lange auf den Melden-Button / -Dialog gewartet wird
         triggerTimeoutMs: 10000,
+        // Abstand zwischen Klick-Versuchen auf den Melden-Button
+        clickRetryMs: 1500,
         // Größe des Popup-Fensters
         popupWidth: 600,
         popupHeight: 780,
-        // Text des offiziellen Melden-Links/Buttons auf der Detailseite
+        // Offizieller Melden-Button auf der Detailseite (Stand 10/2026: <button id="viewad-action-flag-link">)
+        triggerSelectors: ['#viewad-action-flag-link'],
+        // Fallback über den Text, falls sich die ID ändert
         triggerText: /^\s*(anzeige\s+)?melden\s*$/i,
         triggerTextLoose: /anzeige\s+melden/i,
         // Mögliche Container des Melden-Dialogs
@@ -134,7 +140,12 @@
         document.head.appendChild(style);
 
         function findTrigger() {
-            const candidates = Array.from(document.querySelectorAll('a, button, [role="button"], [role="menuitem"]'));
+            for (const sel of CONFIG.triggerSelectors) {
+                const el = Array.from(document.querySelectorAll(sel)).find(isVisible);
+                if (el) return el;
+            }
+            // Nur sichtbare Kandidaten – Kleinanzeigen rendert Buttons teils doppelt (Desktop/Mobil)
+            const candidates = Array.from(document.querySelectorAll('a, button, [role="button"], [role="menuitem"]')).filter(isVisible);
             const byText = (re) => candidates.find(el => {
                 const label = [el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')].filter(Boolean).join(' ');
                 return re.test(label.trim());
@@ -142,12 +153,23 @@
             return byText(CONFIG.triggerText) || byText(CONFIG.triggerTextLoose) || null;
         }
 
-        // Dialoge, die schon vor dem Klick offen waren (z. B. Cookie-Banner), ignorieren
+        // Dialoge/Formulare, die schon vor dem Klick da waren (z. B. Cookie-Banner, Suchfeld), ignorieren
         let preExisting = new Set();
         const allDialogs = () => CONFIG.dialogSelectors.flatMap(sel => Array.from(document.querySelectorAll(sel)));
+        const allForms = () => Array.from(document.querySelectorAll('form, [role="radiogroup"]'));
 
         function findDialog() {
-            return allDialogs().find(el => !preExisting.has(el) && isVisible(el)) || null;
+            const dialog = allDialogs().find(el => !preExisting.has(el) && isVisible(el));
+            if (dialog) return dialog;
+            // Fallback: neu aufgetauchtes Formular mit Auswahlfeldern rund ums Melden
+            const form = allForms().find(el => !preExisting.has(el) && isVisible(el)
+                && el.querySelector('input, textarea, select') && /meld|grund/i.test(el.textContent));
+            if (!form) return null;
+            // Bis zum fixierten Container (Modal) hochlaufen, sonst das Formular selbst nehmen
+            for (let el = form; el && el !== document.body; el = el.parentElement) {
+                if (getComputedStyle(el).position === 'fixed') return el;
+            }
+            return form;
         }
 
         function pageShowsSuccess() {
@@ -209,11 +231,18 @@
                 post('trigger-not-found');
                 return;
             }
-            preExisting = new Set(allDialogs().filter(isVisible));
+            preExisting = new Set([...allDialogs(), ...allForms()].filter(isVisible));
             trigger.scrollIntoView({ block: 'center' });
-            trigger.click();
 
-            const dialog = await waitFor(findDialog, CONFIG.triggerTimeoutMs);
+            // Der Button ist oft schon sichtbar, bevor React die Klick-Logik angehängt hat.
+            // Darum mehrfach klicken, bis der Dialog erscheint.
+            let dialog = null;
+            const deadline = Date.now() + CONFIG.triggerTimeoutMs;
+            while (!dialog && Date.now() < deadline) {
+                const btn = findTrigger() || trigger;
+                btn.click();
+                dialog = await waitFor(findDialog, CONFIG.clickRetryMs);
+            }
             if (!dialog) {
                 post('dialog-not-found');
                 return;
@@ -407,7 +436,7 @@
         const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - w) / 2));
         const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - h) / 2));
         // Muss direkt im Klick-Handler passieren, sonst blockiert der Browser das Popup
-        const popup = window.open(url, 'klm-report', `popup=yes,width=${w},height=${h},left=${left},top=${top}`);
+        const popup = window.open(url, CONFIG.popupName, `popup=yes,width=${w},height=${h},left=${left},top=${top}`);
 
         if (!popup) {
             showToast('Popup wurde vom Browser blockiert. Bitte Popups für kleinanzeigen.de erlauben.', 'warn', [
@@ -517,7 +546,8 @@
     // Start
     // ------------------------------------------------------------------
 
-    if (isDetailPage && window.location.hash === CONFIG.hash) {
+    const isReportPopup = window.location.hash === CONFIG.hash || (window.name === CONFIG.popupName && !!window.opener);
+    if (isDetailPage && isReportPopup) {
         runReportFrame();
     } else if (isSearchPage && window.top === window.self) {
         runOverview();
