@@ -2,10 +2,10 @@
 // @name          Kleinanzeigen - Anzeige melden (aus der Übersicht)
 // @namespace     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @description   Fügt in der Suchergebnis-Übersicht von Kleinanzeigen.de neben dem Preis einen "Melden"-Button ein. Der offizielle Melden-Dialog öffnet sich in einem Overlay – ohne die Übersicht zu verlassen.
-// @author        Rainbowlabs
-// @copyright     2026, Rainbowlabs
+// @author        RainbowlabsInc
+// @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.1.1
+// @version       0.1.2
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
 // @downloadURL   https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js

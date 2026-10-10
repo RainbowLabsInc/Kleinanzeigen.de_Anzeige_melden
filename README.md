@@ -1,7 +1,7 @@
 # 🚩 Kleinanzeigen – Anzeige melden (direkt aus der Übersicht)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-0.1.1-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-0.1.2-blue.svg)]()
 [![Plattform](https://img.shields.io/badge/Plattform-Kleinanzeigen.de-green.svg)]()
 
 Ein Userscript für **Kleinanzeigen.de**, das in der Suchergebnis-Übersicht direkt neben dem Preis einen **„Melden“-Button** einfügt.
@@ -100,4 +100,4 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 ## 📜 Lizenz
 
-[MIT](LICENSE) © 2026 Rainbowlabs
+[MIT](LICENSE) © 2026 RainbowlabsInc
