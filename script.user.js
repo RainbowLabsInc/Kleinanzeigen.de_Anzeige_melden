@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name          Kleinanzeigen - Anzeige melden (aus der Übersicht)
 // @namespace     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
-// @description   Fügt in der Suchergebnis-Übersicht von Kleinanzeigen.de neben dem Preis einen "Melden"-Button ein. Der offizielle Melden-Dialog öffnet sich in einem kleinen Popup-Fenster – die Übersicht bleibt offen.
+// @description   Fügt in der Suchergebnis-Übersicht von Kleinanzeigen.de neben dem Preis einen "Melden"-Button ein. Grund und Text wählst du direkt in der Übersicht aus selbst konfigurierbaren Bausteinen – oder öffnest den offiziellen Melden-Dialog in einem kleinen Popup.
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.3.1
+// @version       0.4.0
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -20,17 +20,18 @@
  * --------------
  * 1. Übersicht (Suchergebnisse, /s-...):
  *    Jede Anzeigen-Karte bekommt neben dem Preis einen "Melden"-Button.
- *    Ein Klick öffnet die Anzeige in einem kleinen Popup-Fenster (URL-Hash #klm-report).
- *    Die Übersicht bleibt dabei unverändert offen. (Ein eingebettetes iframe ist nicht
- *    möglich: Kleinanzeigen verbietet das Einbetten seiner Seiten per X-Frame-Options/CSP.)
+ *    Ein Klick öffnet ein kleines Menü direkt am Button: Baustein (Grund + Text) wählen,
+ *    Text bei Bedarf anpassen, Meldung bestätigen, absenden.
+ *    Gesendet wird genau die Anfrage, die auch der offizielle Melden-Dialog schickt
+ *    (POST /flags/ads/<id>.json mit dem Sicherheits-Token der Anzeigenseite).
+ *    Pro Klick wird genau eine Anzeige gemeldet, jeweils mit Bestätigung.
  *
- * 2. Detailseite im Popup (/s-anzeige/...#klm-report):
- *    Das Script sucht den offiziellen "Anzeige melden"-Button, klickt ihn und blendet
- *    alles außer dem Melden-Dialog aus. Status-Meldungen gehen per postMessage an die
- *    Übersicht zurück; nach erfolgreichem Absenden schließt sich das Popup selbst.
- *
- * Es wird KEIN eigener/inoffizieller Server-Request gesendet – die Meldung läuft
- * ausschließlich über den originalen Dialog von Kleinanzeigen.
+ * 2. Rückfall "Offiziellen Dialog öffnen":
+ *    Die Anzeige öffnet sich in einem kleinen Popup-Fenster (URL-Hash #klm-report).
+ *    (Ein eingebettetes iframe ist nicht möglich: Kleinanzeigen verbietet das Einbetten
+ *    seiner Seiten per X-Frame-Options/CSP.) Das Script klickt dort "Anzeige melden",
+ *    blendet alles außer dem Dialog aus und meldet den Status per postMessage zurück;
+ *    nach dem Absenden schließt sich das Popup selbst.
  *
  * Hinweis: Kleinanzeigen ändert das Frontend häufig. Das Script sucht Elemente daher
  * zuerst über feste Merkmale (z. B. die ID des Melden-Buttons) und fällt sonst auf
@@ -71,6 +72,36 @@
         // Texte, die nach erfolgreichem Absenden erscheinen können (zusätzlich zur
         // Erkennung der Bestätigungsansicht ohne Eingabefelder)
         successText: /(vielen dank|danke für (deine|ihre) meldung|erfolgreich gemeldet|meldung (wurde )?(erhalten|gesendet|übermittelt))/i,
+
+        // Direktes Melden aus der Übersicht (Stand 10/2026, aus dem offiziellen Dialog abgelesen)
+        flagUrl: (adId) => `/flags/ads/${encodeURIComponent(adId)}.json`,
+        textMaxLength: 500,
+        templatesKey: 'klm-templates',
+        lastTemplateKey: 'klm-last-template',
+        userNameKey: 'klm-user-name',
+        // Gesendet wird die reasonId der zweiten Ebene. Bisher bekannt sind nur die
+        // Unterpunkte von "Verdächtiger oder betrügerischer Inhalt"; alle anderen Gründe
+        // gehen über den offiziellen Dialog.
+        reasonGroup: 'Verdächtiger oder betrügerischer Inhalt',
+        reasons: [
+            { id: 'FRAUD_SUSPICIOUS_PRICE', label: 'Verdächtiger Preis' },
+            { id: 'FRAUD_IDENTITY_THEFT', label: 'Identitätsdiebstahl/-missbrauch' },
+            { id: 'FRAUD_SUSPICIOUS_EXCHANGES_WITH_SELLER', label: 'Verdächtiges Verhalten' },
+            { id: 'FRAUD_OTHER', label: 'Anderer Verstoß (verdächtiger Inhalt)' },
+        ],
+        // Fertige Bausteine; Platzhalter: {titel}, {preis}, {id}, {link}
+        defaultTemplates: [
+            { name: 'Lockpreis', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
+                text: 'Der angegebene Preis ({preis}) ist nicht der tatsächliche Verkaufspreis. Laut Beschreibung wird ein deutlich anderer Preis verlangt.' },
+            { name: 'Platzhalter-Preis für die Sortierung', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
+                text: 'Der Preis {preis} ist nur ein Platzhalter, damit die Anzeige bei der Sortierung nach Preis ganz oben erscheint.' },
+            { name: 'Nur Tausch statt Verkauf', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
+                text: 'Angegeben ist ein Preis von {preis}, laut Beschreibung wird aber nur getauscht und nicht verkauft.' },
+            { name: 'Verdacht auf Betrug', reasonId: 'FRAUD_OTHER',
+                text: 'Die Anzeige wirkt betrügerisch: ' },
+        ],
+        // Bestätigung wie im offiziellen Dialog
+        confirmText: 'Ich bestätige, dass ich diese Meldung in gutem Glauben abgebe und sie auf einem tatsächlichen Verstoß der Grundsätze basiert. Mir ist bewusst, dass falsche Meldungen Konsequenzen haben können.',
     };
 
     // Nur auf kleinanzeigen.de laufen – zusätzlich zu @match, falls der Script-Manager
@@ -340,6 +371,72 @@
                 background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer;
             }
             .klm-toast button:hover { background: rgba(255,255,255,.15); }
+
+            .klm-menu {
+                position: absolute; z-index: 2147482000; box-sizing: border-box;
+                max-height: calc(100vh - 32px); overflow: auto;
+                background: #fff; color: #1e1e1e; border: 1px solid #d0d0cc; border-radius: 12px;
+                box-shadow: 0 12px 32px rgba(0,0,0,.22);
+                font: inherit; font-size: 14px; line-height: 1.4; text-align: left;
+            }
+            .klm-menu *, .klm-menu *::before, .klm-menu *::after { box-sizing: border-box; }
+            .klm-menu-head {
+                position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px;
+                padding: 10px 10px 10px 14px; background: #fff; border-bottom: 1px solid #eceae6;
+            }
+            .klm-menu-title { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .klm-menu-body { padding: 12px 14px 14px; display: grid; gap: 12px; }
+            .klm-menu button, .klm-menu input, .klm-menu select, .klm-menu textarea { font: inherit; font-size: 14px; color: inherit; }
+            .klm-icon-btn {
+                flex: none; width: 32px; height: 32px; display: inline-grid; place-items: center;
+                border: 0; border-radius: 8px; background: transparent; cursor: pointer; font-size: 18px; line-height: 1;
+            }
+            .klm-icon-btn:hover, .klm-icon-btn:focus-visible { background: #f2f1ee; outline: none; }
+            .klm-list { display: grid; gap: 4px; margin: 0; padding: 0; border: 0; }
+            .klm-option {
+                display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px;
+                border: 1px solid #e3e1dc; border-radius: 8px; cursor: pointer;
+            }
+            .klm-option:hover { border-color: #c62828; }
+            .klm-option:has(input:checked) { border-color: #c62828; background: #fdecea; }
+            .klm-option input { margin: 3px 0 0; accent-color: #c62828; flex: none; }
+            .klm-option-name { font-weight: 600; display: block; }
+            .klm-option-reason { display: block; font-size: 12px; color: #6b6b6b; }
+            .klm-field { display: grid; gap: 4px; }
+            .klm-field > span { font-size: 12px; font-weight: 600; color: #555; }
+            .klm-input {
+                width: 100%; padding: 8px 10px; border: 1px solid #c9c7c2; border-radius: 8px; background: #fff;
+            }
+            .klm-input:focus { outline: 2px solid #1e1e1e; outline-offset: -1px; }
+            textarea.klm-input { resize: vertical; min-height: 96px; }
+            .klm-counter { justify-self: end; font-size: 12px; color: #6b6b6b; }
+            .klm-confirm { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: #444; cursor: pointer; }
+            .klm-confirm input { margin: 2px 0 0; accent-color: #c62828; flex: none; }
+            .klm-note { margin: 0; padding: 8px 10px; border-radius: 8px; background: #f2f1ee; font-size: 13px; }
+            .klm-note[data-kind="error"] { background: #fdecea; color: #8e1c1c; }
+            .klm-note[data-kind="ok"] { background: #edf7ee; color: #1f5e23; }
+            .klm-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+            .klm-actions .klm-spacer { flex: 1; }
+            .klm-action {
+                padding: 7px 14px; border-radius: 999px; border: 1px solid #c9c7c2; background: #fff;
+                font-weight: 600; cursor: pointer; white-space: nowrap;
+            }
+            .klm-action:hover:not(:disabled), .klm-action:focus-visible { border-color: #1e1e1e; outline: none; }
+            .klm-action[data-primary] { background: #c62828; border-color: #c62828; color: #fff; }
+            .klm-action[data-primary]:hover:not(:disabled) { background: #a51f1f; border-color: #a51f1f; }
+            .klm-action:disabled { opacity: .45; cursor: not-allowed; }
+            .klm-link {
+                justify-self: start; padding: 0; border: 0; background: none; color: #555; text-decoration: underline;
+                font-size: 13px; cursor: pointer;
+            }
+            .klm-link:hover { color: #c62828; }
+            .klm-tpl { display: grid; gap: 8px; padding: 10px; border: 1px solid #e3e1dc; border-radius: 8px; }
+            .klm-tpl-head { display: flex; gap: 4px; align-items: center; }
+            .klm-tpl-head .klm-input { flex: 1; font-weight: 600; }
+            .klm-tpl-head .klm-icon-btn { width: 28px; height: 28px; font-size: 15px; }
+            .klm-tpl-head .klm-icon-btn:disabled { opacity: .3; cursor: default; background: transparent; }
+            .klm-hint { margin: 0; font-size: 12px; color: #6b6b6b; }
+            .klm-hint code { font-size: 12px; background: #f2f1ee; padding: 0 3px; border-radius: 3px; }
         `;
         document.head.appendChild(style);
     }
@@ -420,6 +517,9 @@
             const row = findPriceRow(card);
             if (!row) return;
             card.dataset.klmInjected = 'true';
+            // Aktueller Preis = erstes reines Preis-Element (ohne durchgestrichenen Altpreis)
+            const priceEl = [row, ...row.querySelectorAll('*')].find(e => e.children.length === 0 && isPriceOnly(e.textContent)) || row;
+            info.price = priceEl.textContent.replace(/\s+/g, ' ').trim();
 
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -433,7 +533,7 @@
             btn.addEventListener('click', (e) => {
                 stop(e);
                 if (btn.dataset.state === 'busy') return;
-                openReportPopup(info, btn);
+                toggleMenu(info, btn);
             });
 
             const wrap = document.createElement('span');
@@ -453,6 +553,360 @@
             btn.innerHTML = `${logoImg}<span>Melden</span>`;
             btn.title = 'Anzeige melden, ohne die Übersicht zu verlassen';
         }
+    }
+
+
+    // ------------------------------------------------------------------
+    // Bausteine (lokal gespeichert)
+    // ------------------------------------------------------------------
+
+    const newId = () => Math.random().toString(36).slice(2, 10);
+    const knownReason = (id) => CONFIG.reasons.find(r => r.id === id);
+
+    function loadTemplates() {
+        try {
+            const list = JSON.parse(localStorage.getItem(CONFIG.templatesKey) || 'null');
+            if (Array.isArray(list)) {
+                const valid = list.filter(t => t && typeof t.name === 'string' && typeof t.text === 'string' && knownReason(t.reasonId));
+                if (valid.length) return valid.map(t => ({ id: t.id || newId(), name: t.name, reasonId: t.reasonId, text: t.text }));
+            }
+        } catch (e) { /* kaputter Speicher -> Standard */ }
+        return defaultTemplates();
+    }
+
+    function defaultTemplates() {
+        return CONFIG.defaultTemplates.map(t => ({ id: newId(), ...t }));
+    }
+
+    function saveTemplates(list) {
+        try { localStorage.setItem(CONFIG.templatesKey, JSON.stringify(list)); return true; } catch (e) { return false; }
+    }
+
+    function readSetting(key) {
+        try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+    }
+
+    function writeSetting(key, value) {
+        try { localStorage.setItem(key, value); } catch (e) { /* egal */ }
+    }
+
+    function fillPlaceholders(text, info) {
+        const values = {
+            titel: info.title || '',
+            preis: info.price || '',
+            id: info.adId || '',
+            link: info.href ? info.href.split('#')[0] : '',
+        };
+        return text.replace(/\{(titel|preis|id|link)\}/g, (_, key) => values[key]).slice(0, CONFIG.textMaxLength);
+    }
+
+    // ------------------------------------------------------------------
+    // Direkt melden: Token + Name von der Anzeigenseite, dann derselbe Request wie der Dialog
+    // ------------------------------------------------------------------
+
+    function parseReportContext(html) {
+        const pick = (patterns) => {
+            for (const re of patterns) {
+                const m = html.match(re);
+                if (m) return m[1];
+            }
+            return null;
+        };
+        const token = pick([
+            /const csrfToken = "([^"\\]+)"/,
+            /"csrfToken":"([^"\\]+)"/,
+            /csrfToken&quot;:\[0,&quot;([^&]+)&quot;\]/,
+        ]);
+        let userName = null;
+        const m = html.match(/const loggedInUserName = ("(?:[^"\\]|\\.)*")/);
+        if (m) {
+            try { userName = JSON.parse(m[1]); } catch (e) { /* egal */ }
+        }
+        return { token, userName };
+    }
+
+    // Lädt die Anzeigenseite (wie beim Öffnen) und liest dort Sicherheits-Token und Namen aus –
+    // dieselben Werte, die der offizielle Dialog verwendet.
+    async function loadReportContext(info) {
+        let ctx = { token: null, userName: null };
+        try {
+            const res = await fetch(info.href.split('#')[0], { credentials: 'same-origin' });
+            if (res.ok) ctx = parseReportContext(await res.text());
+        } catch (e) { /* Rückfall unten */ }
+        if (!ctx.token) {
+            const own = parseReportContext(document.documentElement.innerHTML);
+            ctx = { token: own.token, userName: ctx.userName || own.userName };
+        }
+        return ctx;
+    }
+
+    async function sendReport(adId, { reasonId, text, userName, token }) {
+        const res = await fetch(CONFIG.flagUrl(adId), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': token },
+            body: JSON.stringify([{ reasonId, text, userName, anonymousExplicitContentReport: false }]),
+        });
+        return res.status;
+    }
+
+    // ------------------------------------------------------------------
+    // Melden-Menü an der Karte
+    // ------------------------------------------------------------------
+
+    function el(tag, props = {}, ...children) {
+        const node = document.createElement(tag);
+        for (const [k, v] of Object.entries(props)) {
+            if (v == null || v === false) continue;
+            if (k === 'dataset') Object.assign(node.dataset, v);
+            else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+            else if (k in node && k !== 'list') node[k] = v;
+            else node.setAttribute(k, v === true ? '' : v);
+        }
+        children.flat().forEach(c => c != null && node.append(c));
+        return node;
+    }
+
+    let menu = null; // { root, info, btn, ctx, cleanup }
+
+    function toggleMenu(info, btn) {
+        if (menu && menu.btn === btn) { closeMenu(); return; }
+        openMenu(info, btn);
+    }
+
+    function closeMenu() {
+        if (!menu) return;
+        menu.cleanup();
+        menu.root.remove();
+        const btn = menu.btn;
+        menu = null;
+        if (btn.isConnected) btn.focus({ preventScroll: true });
+    }
+
+    function openMenu(info, btn) {
+        closeMenu();
+        const root = el('div', { className: 'klm-menu', role: 'dialog', 'aria-label': 'Anzeige melden' });
+        const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); } };
+        const onOutside = (e) => {
+            if (!menu || root.contains(e.target) || btn.contains(e.target)) return;
+            closeMenu();
+        };
+        const onResize = () => menu && positionMenu();
+        document.addEventListener('keydown', onKey, true);
+        document.addEventListener('pointerdown', onOutside, true);
+        window.addEventListener('resize', onResize);
+
+        menu = {
+            root, info, btn,
+            ctx: loadReportContext(info),
+            cleanup: () => {
+                document.removeEventListener('keydown', onKey, true);
+                document.removeEventListener('pointerdown', onOutside, true);
+                window.removeEventListener('resize', onResize);
+            },
+        };
+        document.body.appendChild(root);
+        renderReportView();
+    }
+
+    function positionMenu() {
+        const { root, btn } = menu;
+        const r = btn.getBoundingClientRect();
+        const vw = document.documentElement.clientWidth;
+        const width = Math.min(400, vw - 32);
+        root.style.width = width + 'px';
+        const left = Math.min(Math.max(16, r.right - width), vw - 16 - width);
+        root.style.left = (left + window.scrollX) + 'px';
+        root.style.top = (r.bottom + 8 + window.scrollY) + 'px';
+    }
+
+    function revealMenu() {
+        positionMenu();
+        menu.root.scrollIntoView({ block: 'nearest' });
+    }
+
+    function menuHeader(title, extraButtons = []) {
+        return el('div', { className: 'klm-menu-head' },
+            el('span', { className: 'klm-menu-title', title }, title),
+            extraButtons,
+            el('button', { type: 'button', className: 'klm-icon-btn', 'aria-label': 'Schließen', title: 'Schließen', onclick: closeMenu }, '×'));
+    }
+
+    function renderReportView() {
+        const { root, info, btn } = menu;
+        const templates = loadTemplates();
+        const lastId = readSetting(CONFIG.lastTemplateKey);
+        let selected = templates.find(t => t.id === lastId) || templates[0];
+        let sending = false;
+
+        const text = el('textarea', { className: 'klm-input', rows: 4, maxLength: CONFIG.textMaxLength, required: true });
+        const counter = el('span', { className: 'klm-counter' });
+        const name = el('input', { className: 'klm-input', type: 'text', autocomplete: 'name', required: true, placeholder: 'wird geladen …' });
+        const confirm = el('input', { type: 'checkbox' });
+        const status = el('p', { className: 'klm-note', role: 'status', hidden: true });
+        const sendBtn = el('button', { type: 'button', className: 'klm-action', dataset: { primary: '' } }, 'Melden');
+        let token = null;
+        let ctxLoaded = false;
+
+        const showStatus = (msg, kind) => {
+            status.hidden = !msg;
+            status.textContent = msg || '';
+            if (kind) status.dataset.kind = kind; else delete status.dataset.kind;
+        };
+        const update = () => {
+            counter.textContent = `${text.value.length}/${CONFIG.textMaxLength}`;
+            sendBtn.disabled = sending || !ctxLoaded || !token || !selected
+                || !text.value.trim() || !name.value.trim() || !confirm.checked;
+        };
+        const applyTemplate = (t) => {
+            selected = t;
+            text.value = fillPlaceholders(t.text, info);
+            update();
+        };
+
+        const options = templates.map(t => {
+            const radio = el('input', { type: 'radio', name: 'klm-template', value: t.id, checked: t === selected,
+                onchange: () => applyTemplate(t) });
+            return el('label', { className: 'klm-option' }, radio,
+                el('span', {},
+                    el('span', { className: 'klm-option-name' }, t.name),
+                    el('span', { className: 'klm-option-reason' }, knownReason(t.reasonId).label)));
+        });
+
+        text.addEventListener('input', update);
+        name.addEventListener('input', update);
+        confirm.addEventListener('change', update);
+
+        sendBtn.addEventListener('click', async () => {
+            if (sendBtn.disabled) return;
+            sending = true;
+            update();
+            showStatus('Meldung wird gesendet …');
+            const userName = name.value.trim();
+            let code = 0;
+            try {
+                code = await sendReport(info.adId, { reasonId: selected.reasonId, text: text.value.trim(), userName, token });
+            } catch (e) { code = 0; }
+            if (!menu || menu.root !== root) return;
+            if (code >= 200 && code < 300) {
+                writeSetting(CONFIG.lastTemplateKey, selected.id);
+                writeSetting(CONFIG.userNameKey, userName);
+                markReported(info.adId);
+                closeMenu();
+                showToast(`Anzeige gemeldet: ${knownReason(selected.reasonId).label}`, 'ok', [], 4000);
+                return;
+            }
+            sending = false;
+            update();
+            showStatus(code === 0
+                ? 'Die Meldung konnte nicht gesendet werden (Netzwerkfehler). Du kannst es erneut versuchen oder den offiziellen Dialog nutzen.'
+                : code === 401 || code === 403
+                    ? `Kleinanzeigen hat die Meldung abgelehnt (Status ${code}). Bist du eingeloggt? Sonst bitte den offiziellen Dialog nutzen.`
+                    : `Kleinanzeigen hat die Meldung abgelehnt (Status ${code}). Bitte den offiziellen Dialog nutzen.`, 'error');
+        });
+
+        const reportedAt = loadReported()[info.adId];
+        const body = el('div', { className: 'klm-menu-body' },
+            reportedAt ? el('p', { className: 'klm-note', dataset: { kind: 'ok' } },
+                `Du hast diese Anzeige am ${new Date(reportedAt).toLocaleDateString('de-DE')} bereits gemeldet.`) : null,
+            el('fieldset', { className: 'klm-list' },
+                el('legend', { className: 'klm-hint', style: 'margin-bottom:4px' }, `Grund (${CONFIG.reasonGroup})`),
+                options),
+            el('label', { className: 'klm-field' }, el('span', {}, 'Nachricht'), text, counter),
+            el('label', { className: 'klm-field' }, el('span', {}, 'Name (wird wie im offiziellen Dialog mitgesendet)'), name),
+            el('label', { className: 'klm-confirm' }, confirm, el('span', {}, CONFIG.confirmText)),
+            status,
+            el('div', { className: 'klm-actions' },
+                el('span', { className: 'klm-spacer' }),
+                el('button', { type: 'button', className: 'klm-action', onclick: closeMenu }, 'Abbrechen'),
+                sendBtn),
+            el('button', { type: 'button', className: 'klm-link', onclick: () => { closeMenu(); openReportPopup(info, btn); } },
+                'Anderer Grund? Offiziellen Melden-Dialog öffnen'));
+
+        const gear = el('button', { type: 'button', className: 'klm-icon-btn', 'aria-label': 'Bausteine bearbeiten',
+            title: 'Bausteine bearbeiten', onclick: renderSettingsView }, '⚙');
+        root.replaceChildren(menuHeader(`Melden: ${info.title || 'Anzeige ' + info.adId}`, [gear]), body);
+        if (selected) applyTemplate(selected);
+        update();
+        revealMenu();
+        (root.querySelector('input[name="klm-template"]:checked') || text).focus({ preventScroll: true });
+
+        menu.ctx.then(ctx => {
+            if (!menu || menu.root !== root) return;
+            ctxLoaded = true;
+            token = ctx.token;
+            if (!name.value.trim()) name.value = ctx.userName || readSetting(CONFIG.userNameKey);
+            name.placeholder = 'Dein Name';
+            if (!token) showStatus('Kein Sicherheits-Token gefunden. Bist du eingeloggt? Alternativ den offiziellen Dialog nutzen.', 'error');
+            update();
+        });
+    }
+
+    function renderSettingsView() {
+        const { root } = menu;
+        let list = loadTemplates();
+        const listBox = el('div', { className: 'klm-list' });
+        const status = el('p', { className: 'klm-note', role: 'status', hidden: true });
+
+        const drawList = () => {
+            listBox.replaceChildren(...list.map((t, i) => {
+                const reason = el('select', { className: 'klm-input', onchange: (e) => { t.reasonId = e.target.value; } },
+                    CONFIG.reasons.map(r => el('option', { value: r.id, selected: r.id === t.reasonId }, r.label)));
+                const move = (d) => { list.splice(i + d, 0, list.splice(i, 1)[0]); drawList(); };
+                return el('div', { className: 'klm-tpl' },
+                    el('div', { className: 'klm-tpl-head' },
+                        el('input', { className: 'klm-input', type: 'text', value: t.name, 'aria-label': 'Name des Bausteins',
+                            maxLength: 60, oninput: (e) => { t.name = e.target.value; } }),
+                        el('button', { type: 'button', className: 'klm-icon-btn', title: 'Nach oben', 'aria-label': 'Nach oben',
+                            disabled: i === 0, onclick: () => move(-1) }, '↑'),
+                        el('button', { type: 'button', className: 'klm-icon-btn', title: 'Nach unten', 'aria-label': 'Nach unten',
+                            disabled: i === list.length - 1, onclick: () => move(1) }, '↓'),
+                        el('button', { type: 'button', className: 'klm-icon-btn', title: 'Löschen', 'aria-label': 'Baustein löschen',
+                            disabled: list.length === 1, onclick: () => { list.splice(i, 1); drawList(); } }, '🗑')),
+                    reason,
+                    el('textarea', { className: 'klm-input', rows: 3, maxLength: CONFIG.textMaxLength, value: t.text,
+                        'aria-label': 'Text des Bausteins', oninput: (e) => { t.text = e.target.value; } }));
+            }));
+        };
+
+        const save = () => {
+            const clean = list.map(t => ({ ...t, name: t.name.trim(), text: t.text.trim() }));
+            if (clean.some(t => !t.name || !t.text)) {
+                status.hidden = false;
+                status.dataset.kind = 'error';
+                status.textContent = 'Jeder Baustein braucht einen Namen und einen Text.';
+                return;
+            }
+            if (!saveTemplates(clean)) {
+                status.hidden = false;
+                status.dataset.kind = 'error';
+                status.textContent = 'Speichern nicht möglich (Browser-Speicher nicht verfügbar).';
+                return;
+            }
+            renderReportView();
+        };
+
+        drawList();
+        const body = el('div', { className: 'klm-menu-body' },
+            el('p', { className: 'klm-hint' }, 'Platzhalter im Text: ',
+                el('code', {}, '{titel}'), ' ', el('code', {}, '{preis}'), ' ', el('code', {}, '{id}'), ' ', el('code', {}, '{link}'),
+                '. Gespeichert wird nur lokal in deinem Browser.'),
+            listBox,
+            el('div', { className: 'klm-actions' },
+                el('button', { type: 'button', className: 'klm-action',
+                    onclick: () => { list.push({ id: newId(), name: 'Neuer Baustein', reasonId: CONFIG.reasons[0].id, text: '' }); drawList(); } },
+                    '+ Neuer Baustein'),
+                el('button', { type: 'button', className: 'klm-link',
+                    onclick: () => { list = defaultTemplates(); drawList(); } }, 'Standard wiederherstellen')),
+            status,
+            el('div', { className: 'klm-actions' },
+                el('span', { className: 'klm-spacer' }),
+                el('button', { type: 'button', className: 'klm-action', onclick: renderReportView }, 'Zurück'),
+                el('button', { type: 'button', className: 'klm-action', dataset: { primary: '' }, onclick: save }, 'Speichern')));
+
+        root.replaceChildren(menuHeader('Bausteine bearbeiten'), body);
+        revealMenu();
+        root.querySelector('input').focus({ preventScroll: true });
     }
 
     // ------------------------------------------------------------------

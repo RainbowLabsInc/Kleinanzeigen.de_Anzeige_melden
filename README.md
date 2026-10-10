@@ -6,13 +6,13 @@
 
 **Unsaubere Anzeigen direkt aus der Suchergebnis-Übersicht melden, mit einem Klick und ohne die Liste zu verlassen.**
 
-[![Version](https://img.shields.io/badge/version-0.3.1-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
 [![Plattform](https://img.shields.io/badge/plattform-Kleinanzeigen.de-green?style=flat-square)](https://www.kleinanzeigen.de)
 [![Userscript](https://img.shields.io/badge/Tampermonkey-Violentmonkey-black?style=flat-square&logo=tampermonkey)](#%EF%B8%8F-installation)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20RainbowlabsInc-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white)](https://ko-fi.com/rainbowlabsinc)
 
-*Chrome · Firefox · Edge · Kein Server · Kein Tracking · Nur offizieller Melden-Weg*
+*Chrome · Firefox · Edge · Kein Server · Kein Tracking · Meldet wie der offizielle Dialog*
 
 </div>
 
@@ -22,7 +22,12 @@ Wer auf Kleinanzeigen nach Autos, Elektronik oder Wohnungen sucht, kennt das: **
 
 Melden kann man sie, aber dafür muss man jede Anzeige öffnen, nach unten scrollen, „Anzeige melden“ suchen und danach zurück zur Liste. Dabei geht oft die Scroll-Position verloren.
 
-**Dieses Userscript setzt einen „Melden“-Button direkt neben den Preis jeder Anzeige in der Übersicht.** Ein Klick öffnet den **offiziellen Melden-Dialog** von Kleinanzeigen in einem kleinen Fenster. Du wählst den Grund, schickst ab, und das Fenster schließt sich wieder. Deine Suchergebnisse bleiben dabei unverändert offen.
+**Dieses Userscript setzt einen „Melden“-Button direkt neben den Preis jeder Anzeige in der Übersicht.** Ein Klick öffnet ein kleines Menü direkt am Button. Dort wählst du einen **Baustein** (Grund und fertiger Text), passt den Text bei Bedarf an, bestätigst und meldest. Es öffnet sich kein Fenster, und deine Suchergebnisse bleiben unverändert offen. Für alle anderen Gründe öffnet ein Link den **offiziellen Melden-Dialog** in einem kleinen Fenster.
+
+<p align="center">
+  <img src="assets/vorschau-menue.png" alt="Melden-Menü in der Übersicht mit Bausteinen, Nachricht, Name und Bestätigung" width="424">
+  <br><sub>Das Melden-Menü direkt in der Übersicht (Darstellung an einer nachgebauten Seite).</sub>
+</p>
 
 <p align="center">
   <img src="assets/vorschau-button.png" alt="Melden-Button neben dem Preis, oben im Zustand Melden, unten im Zustand Gemeldet" width="640">
@@ -34,12 +39,13 @@ Melden kann man sie, aber dafür muss man jede Anzeige öffnen, nach unten scrol
 ## ✨ Features
 
 * 🚩 **Melden-Button in der Übersicht:** Er sitzt in jeder Anzeigen-Karte rechts neben dem Preis, trägt das RainbowlabsInc-Logo und fügt sich ins Kleinanzeigen-Design ein.
-* 🪟 **Kleines Melden-Fenster:** Die Anzeige öffnet sich in einem Popup. Das Script klickt dort automatisch auf „Anzeige melden“ und blendet alles außer dem Dialog aus.
-* 🚪 **Schließt sich selbst:** Nach dem Absenden geht das Fenster automatisch zu, beim Abbrechen ebenfalls. Du landest sofort wieder in deiner Liste.
+* 🧩 **Melden ohne Fenster:** Ein Klick öffnet ein Menü am Button. Baustein wählen, Text prüfen, bestätigen, melden. Fertig.
+* ✏️ **Eigene Bausteine:** Über ⚙️ im Menü legst du Bausteine an, benennst sie um, sortierst oder löschst sie. Jeder Baustein besteht aus einem offiziellen Grund und einem Text mit Platzhaltern wie `{preis}` oder `{titel}`. Vier fertige Vorlagen sind dabei, z. B. „Lockpreis“.
+* ☑️ **Eine Meldung pro Klick:** Jede Meldung muss einzeln bestätigt werden, mit demselben Satz wie im offiziellen Dialog. Mehrere Anzeigen auf einmal zu melden ist bewusst nicht möglich.
+* 🪟 **Offizieller Dialog als Rückfall:** Für alle anderen Gründe öffnet ein Link den Melden-Dialog von Kleinanzeigen in einem kleinen Popup. Das Script klickt dort automatisch auf „Anzeige melden“, und nach dem Absenden schließt sich das Fenster wieder.
 * 📌 **Übersicht bleibt, wo sie ist:** Kein Seitenwechsel, kein Zurück-Button. Scroll-Position, Filter und Seite bleiben erhalten.
 * ✅ **„Gemeldet“-Markierung:** Nach dem Absenden wird der Button grün und bleibt lokal in deinem Browser gespeichert. So meldest du nichts doppelt.
-* 💬 **Statusleiste:** Unten in der Übersicht siehst du, was gerade passiert. Schließt du das Fenster ohne erkannte Meldung, fragt das Script nach, ob du die Anzeige als gemeldet markieren willst.
-* 🛡️ **Nur offizieller Weg:** Das Script sendet **keine** eigenen Requests an Kleinanzeigen. Gemeldet wird ausschließlich über den originalen Dialog der Plattform.
+* 🛡️ **Gleicher Weg wie der Dialog:** Das Script sendet nur die Meldung selbst, und zwar genau so, wie der offizielle Dialog sie sendet. Andere Anfragen an Kleinanzeigen stellt es nicht.
 * 🔒 **Strikt begrenzt:** Es läuft nur auf `https://www.kleinanzeigen.de` und dort nur auf Such- und Anzeigenseiten.
 
 ---
@@ -70,10 +76,21 @@ Updates holt sich Tampermonkey automatisch aus diesem Repo.
 1. Auf Kleinanzeigen.de **einloggen**, denn Melden setzt ein Konto voraus.
 2. Ganz normal suchen, z. B. in der Kategorie Autos.
 3. Bei einer unsauberen Anzeige rechts neben dem Preis auf **„Melden“** klicken.
-4. Im kleinen Fenster den Grund wählen und absenden.
-5. Das Fenster schließt sich automatisch, und der Button zeigt **„Gemeldet“**.
+4. Im Menü einen Baustein wählen und den Text bei Bedarf anpassen.
+5. Die Bestätigung anhaken und auf **„Melden“** klicken. Der Button zeigt danach **„Gemeldet“**.
 
-> Falls der Browser das Fenster blockiert, erscheint unten ein Hinweis. Erlaube dann Popups für `kleinanzeigen.de`, oder öffne die Anzeige über den Hinweis in einem neuen Tab.
+**Bausteine anpassen:** Im Menü auf ⚙️ klicken. Im Text kannst du diese Platzhalter verwenden:
+
+| Platzhalter | wird ersetzt durch |
+|---|---|
+| `{titel}` | Titel der Anzeige |
+| `{preis}` | angezeigter Preis, z. B. „2 € VB“ |
+| `{id}` | Anzeigen-Nummer |
+| `{link}` | Link zur Anzeige |
+
+Direkt aus dem Menü lassen sich bisher die Unterpunkte von **„Verdächtiger oder betrügerischer Inhalt“** melden: Verdächtiger Preis, Identitätsdiebstahl/-missbrauch, Verdächtiges Verhalten und Anderer Verstoß. Alle anderen Gründe gehen über **„Anderer Grund? Offiziellen Melden-Dialog öffnen“**.
+
+> Falls der Browser das Fenster für den offiziellen Dialog blockiert, erscheint unten ein Hinweis. Erlaube dann Popups für `kleinanzeigen.de`, oder öffne die Anzeige über den Hinweis in einem neuen Tab.
 
 ---
 
@@ -82,12 +99,13 @@ Updates holt sich Tampermonkey automatisch aus diesem Repo.
 | Seite | Was passiert |
 |---|---|
 | Suchergebnisse (`/s-…`) | Das Script erkennt die Anzeigen-Karten über ihre Links auf `/s-anzeige/…` und setzt den Button in die Preiszeile. Nachgeladene Ergebnisse werden per `MutationObserver` ebenfalls erfasst. |
-| Klick auf „Melden“ | Die Anzeige wird mit dem Hash `#klm-report` in einem Popup-Fenster geöffnet. |
-| Anzeige im Popup | Dasselbe Script erkennt den Hash, klickt auf „Anzeige melden“, hebt den Dialog hervor und meldet den Status per `postMessage` an die Übersicht zurück. |
+| Klick auf „Melden“ | Das Menü öffnet sich. Im Hintergrund lädt das Script die Anzeigenseite, wie beim normalen Öffnen, und liest dort den Sicherheits-Token und deinen Namen aus. Das sind dieselben Werte, die der offizielle Dialog verwendet. |
+| Absenden | `POST /flags/ads/<Anzeigen-Nr>.json` mit Grund, Text und Name, dazu der Token als `x-csrf-token`. Genau diese Anfrage schickt auch der offizielle Dialog. |
+| „Offiziellen Melden-Dialog öffnen“ | Die Anzeige wird mit dem Hash `#klm-report` in einem Popup-Fenster geöffnet. Dasselbe Script erkennt den Hash, klickt auf „Anzeige melden“, hebt den Dialog hervor und meldet den Status per `postMessage` an die Übersicht zurück. |
 
-> **Warum kein Overlay direkt auf der Seite?** Kleinanzeigen verbietet das Einbetten seiner Seiten in andere Seiten (Schutz gegen Clickjacking). Ein eingebettetes Fenster wird vom Browser blockiert, deshalb der Weg über ein eigenes kleines Fenster.
+> **Warum ist der offizielle Dialog ein eigenes Fenster und kein Overlay?** Kleinanzeigen verbietet das Einbetten seiner Seiten in andere Seiten (Schutz gegen Clickjacking). Ein eingebettetes Fenster wird vom Browser blockiert.
 
-Alle Selektoren und Texte, an denen sich das Script orientiert, stehen gesammelt im `CONFIG`-Block am Anfang von `script.user.js`.
+Alle Selektoren, Texte, Gründe und Standard-Bausteine stehen gesammelt im `CONFIG`-Block am Anfang von `script.user.js`.
 
 ---
 
@@ -95,7 +113,8 @@ Alle Selektoren und Texte, an denen sich das Script orientiert, stehen gesammelt
 
 | Browser | Erweiterung | Stand |
 |---|---|---|
-| Firefox | Tampermonkey | ✅ auf der Live-Seite getestet: Button, Melde-Popup, automatisches Schließen |
+| Firefox | Tampermonkey | ✅ auf der Live-Seite getestet: Button, Melde-Popup, automatisches Schließen (bis 0.3.1) |
+| Firefox | Tampermonkey | ⏳ Melden-Menü (0.4.0) bisher nur an einer nachgebauten Seite getestet. Das Anfrageformat stammt aus einer echten Meldung über den offiziellen Dialog. |
 | Chrome / Edge | Tampermonkey / Violentmonkey | ⏳ noch nicht getestet, sollte genauso funktionieren |
 
 Kleinanzeigen ändert sein Frontend regelmäßig. Das Script sucht Buttons und Dialoge deshalb zuerst über feste Merkmale (z. B. `#viewad-action-flag-link`) und nutzt als Rückfall die Beschriftung. Funktioniert trotzdem etwas nicht mehr, hilft ein [Issue](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/issues) mit:
@@ -111,6 +130,7 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 | Version | Änderungen |
 |---|---|
+| **0.4.0** | Melden direkt in der Übersicht über ein Menü mit selbst konfigurierbaren Bausteinen; offizieller Dialog bleibt als Rückfall |
 | **0.3.1** | Aufgeräumt: Kommentare, Benennung und Kleinigkeiten im Code, „Gemeldet“-Button erneut anklickbar |
 | **0.3.0** | RainbowlabsInc-Logo im Melden-Button und als Script-Icon in Tampermonkey |
 | **0.2.2** | Melde-Fenster schließt sich nach dem Absenden bzw. Abbrechen automatisch |
@@ -122,7 +142,7 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 ## 🗺️ Ideen für später
 
-* Grund direkt in der Übersicht auswählen, ganz ohne Fenster.
+* Weitere Gründe (z. B. „Mutmaßlich gewerblicher Anbieter“) direkt aus dem Menü melden, sobald ihre Unterpunkte bekannt sind.
 * Optionale Hervorhebung verdächtiger Anzeigen (z. B. 1–15 € bei Autos).
 * Browser-Extension (Chrome/Edge/Firefox) auf Basis desselben Codes.
 
@@ -134,6 +154,8 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 * Es liest keine Passwörter oder Nachrichten aus.
 * Es nutzt keine externen Server, alles läuft lokal in deinem Browser. Das Logo im Button ist direkt im Script eingebettet.
+* An Kleinanzeigen schickt es nur das, was auch beim normalen Melden passiert: die Anzeigenseite laden und die Meldung absenden, und zwar erst nach deinem Klick und deiner Bestätigung.
+* Bausteine, „Gemeldet“-Markierungen und dein zuletzt verwendeter Name liegen nur im Speicher deines Browsers für kleinanzeigen.de.
 * Es läuft **ausschließlich auf `https://www.kleinanzeigen.de`**, und dort nur auf Such- und Anzeigenseiten (`/s-…`). Auf allen anderen Websites ist es inaktiv.
 * Inspiriert vom Aufbau des Userscripts [Kleinanzeigen.de – Anzeige duplizieren & neu einstellen](https://github.com/Zer089/Kleinanzeigen.de-Anzeige_duplizieren_neu_einstellen) von Zer089 (MIT).
 
