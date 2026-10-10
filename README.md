@@ -79,9 +79,9 @@ Es gibt das Script in zwei Varianten. Beide setzen denselben Button neben den Pr
 
 **Schritt 2: Eine Variante installieren**
 
-[![Installieren: Bausteine](https://img.shields.io/badge/Installieren-Bausteine-00aa00?style=for-the-badge&logo=tampermonkey)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+<a href="https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js"><img src="assets/installieren-bausteine.svg" alt="Installieren: Anzeige melden, Variante Bausteine" width="320" height="60"></a>
 &nbsp;
-[![Installieren: Offizieller Dialog](https://img.shields.io/badge/Installieren-Offizieller%20Dialog-1e6fd9?style=for-the-badge&logo=tampermonkey)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js)
+<a href="https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js"><img src="assets/installieren-offiziell.svg" alt="Installieren: Anzeige melden, Variante Offizieller Dialog" width="320" height="60"></a>
 
 *(Alternativ: Inhalt von `script.user.js` bzw. `script-offiziell.user.js` kopieren und in Tampermonkey als neues Skript einfügen.)*
 
