@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.4.5
+// @version       0.4.6
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
@@ -91,15 +91,16 @@
             { id: 'FRAUD_SUSPICIOUS_EXCHANGES_WITH_SELLER', label: 'Verdächtiges Verhalten' },
             { id: 'FRAUD_OTHER', label: 'Anderer Verstoß (verdächtiger Inhalt)' },
         ],
-        // Fertige Bausteine; Platzhalter: {titel}, {preis}, {id}, {link}
+        // Fertige Bausteine; Platzhalter: {titel}, {preis}, {id}, {link}. Feste IDs, damit der
+        // zuletzt benutzte Baustein auch ohne gespeicherte eigene Bausteine wiedererkannt wird.
         defaultTemplates: [
-            { name: 'Lockpreis', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
+            { id: 'std-lockpreis', name: 'Lockpreis', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
                 text: 'Der angegebene Preis ({preis}) ist nicht der tatsächliche Verkaufspreis. Laut Beschreibung wird ein deutlich anderer Preis verlangt.' },
-            { name: 'Platzhalter-Preis für die Sortierung', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
+            { id: 'std-platzhalter', name: 'Platzhalter-Preis für die Sortierung', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
                 text: 'Der Preis {preis} ist nur ein Platzhalter, damit die Anzeige bei der Sortierung nach Preis ganz oben erscheint.' },
-            { name: 'Nur Tausch statt Verkauf', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
+            { id: 'std-tausch', name: 'Nur Tausch statt Verkauf', reasonId: 'FRAUD_SUSPICIOUS_PRICE',
                 text: 'Angegeben ist ein Preis von {preis}, laut Beschreibung wird aber nur getauscht und nicht verkauft.' },
-            { name: 'Verdacht auf Betrug', reasonId: 'FRAUD_OTHER',
+            { id: 'std-betrug', name: 'Verdacht auf Betrug', reasonId: 'FRAUD_OTHER',
                 text: 'Die Anzeige wirkt betrügerisch: ' },
         ],
         // Bestätigung wie im offiziellen Dialog
@@ -629,7 +630,7 @@
     }
 
     function defaultTemplates() {
-        return CONFIG.defaultTemplates.map(t => ({ id: newId(), ...t }));
+        return CONFIG.defaultTemplates.map(t => ({ ...t }));
     }
 
     function saveTemplates(list) {
@@ -844,17 +845,23 @@
             update();
             showStatus('Meldung wird gesendet …');
             const userName = name.value.trim();
+            const template = selected;
             let code = 0, detail = '';
             try {
-                ({ code, detail } = await sendReport(info.adId, { reasonId: selected.reasonId, text: text.value.trim(), userName, token }));
+                ({ code, detail } = await sendReport(info.adId, { reasonId: template.reasonId, text: text.value.trim(), userName, token }));
             } catch (e) { code = 0; }
-            if (!menu || menu.root !== root) return;
+            // Das Menü kann inzwischen geschlossen sein (Escape, Klick daneben): Das Ergebnis trotzdem festhalten
+            const open = !!menu && menu.root === root;
             if (code >= 200 && code < 300) {
-                writeSetting(CONFIG.lastTemplateKey, selected.id);
+                writeSetting(CONFIG.lastTemplateKey, template.id);
                 writeSetting(CONFIG.userNameKey, userName);
                 markReported(info.adId);
-                closeMenu();
-                showToast(`Anzeige gemeldet: ${knownReason(selected.reasonId).label}`, 'ok', [], 4000);
+                if (open) closeMenu();
+                showToast(`Anzeige gemeldet: ${knownReason(template.reasonId).label}`, 'ok', [], 4000);
+                return;
+            }
+            if (!open) {
+                showToast(`Meldung für „${info.title || 'Anzeige ' + info.adId}“ nicht gesendet${code ? ` (Status ${code})` : ' (Netzwerkfehler)'}. Bitte erneut versuchen.`, 'warn', [], 8000);
                 return;
             }
             sending = false;

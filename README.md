@@ -6,7 +6,7 @@
 
 **Unsaubere Anzeigen direkt aus der Suchergebnis-Übersicht melden, mit einem Klick und ohne die Liste zu verlassen.**
 
-[![Version](https://img.shields.io/badge/version-0.4.5-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+[![Version](https://img.shields.io/badge/version-0.4.6-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
 [![Plattform](https://img.shields.io/badge/plattform-Kleinanzeigen.de-green?style=flat-square)](https://www.kleinanzeigen.de)
 [![Userscript](https://img.shields.io/badge/Tampermonkey-Violentmonkey-black?style=flat-square&logo=tampermonkey)](#%EF%B8%8F-installation)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
@@ -46,7 +46,7 @@ Es gibt das Script in zwei Varianten. Beide setzen denselben Button neben den Pr
 | Grund und Text | fertige, selbst konfigurierbare Bausteine | wählst du jedes Mal im Dialog |
 | Anfragen an Kleinanzeigen | sendet die Meldung selbst, genau wie der Dialog | sendet selbst nichts, alles läuft über den Dialog |
 | Gründe | direkt: „Verdächtiger oder betrügerischer Inhalt“; alle anderen über den offiziellen Dialog | alle |
-| Version | 0.4.5 | 0.3.5 |
+| Version | 0.4.6 | 0.3.5 |
 
 **Installiere bitte nur eine der beiden.** Sind doch beide aktiv, arbeitet nur die zuerst gestartete, die andere bleibt still. Die „Gemeldet“-Markierungen teilen sich beide, ein Wechsel geht also nichts verloren.
 
@@ -152,6 +152,7 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 | Version | Änderungen |
 |---|---|
+| **0.4.6** | Bausteine: Der zuletzt benutzte Baustein ist beim nächsten Melden wieder vorausgewählt (klappte mit den Standard-Bausteinen nicht). Wird das Menü geschlossen, während die Meldung noch gesendet wird, bekommt die Anzeige trotzdem „Gemeldet“, bzw. ein Hinweis zeigt, dass die Meldung nicht angekommen ist. Variante „Offizieller Dialog“ unverändert |
 | **0.4.5** | Auch an Anzeigen mit „VB“ ohne Betrag oder ganz ohne Preisangabe (z. B. „Zu verschenken“ auf der Startseite): ohne Preiszeile kommt der Button in eine eigene Zeile unter dem Titel, die sich Melden und „Nutzer ausblenden“ teilen (Variante „Offizieller Dialog“ 0.3.5 ebenso) |
 | **0.4.4** | Melden-Button fehlte auf der Startseite: Buttons von „Nutzer ausblenden“ in der Preiszeile werden jetzt übergangen, sodass beide Scripts dieselbe Zeile finden; baut die Seite eine Karte neu auf, kommt der Button wieder (Variante „Offizieller Dialog“ 0.3.4 ebenso) |
 | **0.4.3** | Auch auf der Startseite: Melden-Button an den Anzeigen dort (Variante „Offizieller Dialog“ 0.3.3 ebenso). Tampermonkey zeigt beim Update die zusätzliche Adresse an |
