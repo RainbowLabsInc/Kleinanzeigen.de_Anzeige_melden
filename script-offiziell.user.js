@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.3.3
+// @version       0.3.4
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js
@@ -314,13 +314,17 @@
             requestAnimationFrame(() => { scheduled = false; injectButtons(); });
         };
         injectButtons();
-        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
 
         window.addEventListener('message', onPopupMessage);
     }
 
+    // Die Seite baut Teile des Dokuments nach dem Laden neu auf; dann die Styles erneut einhängen
+    const overviewStyle = document.createElement('style');
+    const ensureOverviewStyles = () => { if (!overviewStyle.isConnected) (document.head || document.documentElement).appendChild(overviewStyle); };
+
     function injectOverviewStyles() {
-        const style = document.createElement('style');
+        const style = overviewStyle;
         style.textContent = `
             .klm-price-row { display: flex !important; align-items: center; flex-wrap: wrap; gap: 8px; }
             /* Wrapper: der Button darin ist ein atomares Inline-Element und erbt so keine Link-Unterstreichung der Karte */
@@ -355,7 +359,7 @@
             }
             .klm-toast button:hover { background: rgba(255,255,255,.15); }
         `;
-        document.head.appendChild(style);
+        ensureOverviewStyles();
     }
 
     function findAdCards() {
@@ -367,7 +371,10 @@
         // Generisch: vom Anzeigen-Link so weit nach oben laufen, wie der Container
         // nur Links auf genau diese eine Anzeige enthält -> das ist die Karte.
         document.querySelectorAll('a[href*="/s-anzeige/"]').forEach(link => {
-            if (link.closest('[data-klm-injected], article.aditem[data-adid]')) return;
+            if (link.closest('article.aditem[data-adid]')) return;
+            // Karte schon versorgt? Nur überspringen, solange ihr Button noch da ist
+            const done = link.closest('[data-klm-injected]');
+            if (done && done.querySelector('.klm-btn')) return;
             const adId = getAdIdFromUrl(link.href);
             if (!adId) return;
             let card = null;
@@ -404,20 +411,34 @@
         return t.length > 0 && /€|zu verschenken/i.test(t) && t.replace(pricePartsRe, '').replace(/\s+/g, '') === '';
     }
 
+    // Buttons dieses und anderer Scripts (Nutzer ausblenden, Superscript) beim Lesen des Preises
+    // ignorieren. Sonst findet das zweite Script die Preiszeile nicht mehr, sobald das erste seinen
+    // Button hineingesetzt hat, und setzt keinen Button.
+    const FOREIGN_UI = '.klm-wrap, .kua-ui, .kps-ui, .kss-ui';
+
+    function textWithoutUi(node) {
+        let text = node.textContent;
+        node.querySelectorAll(FOREIGN_UI).forEach(ui => { text = text.split(ui.textContent).join(''); });
+        return text;
+    }
+
+    // Reines Preis-Element: keine eigenen Kind-Elemente außer fremden Buttons, nur Preistext
+    const isPriceLeaf = (el) => Array.from(el.children).every(c => c.matches(FOREIGN_UI))
+        && !el.closest(FOREIGN_UI) && isPriceOnly(textWithoutUi(el));
+
     function findPriceRow(card) {
         // Klassisches Layout
         const classic = card.querySelector('.aditem-main--middle--price-shipping');
         if (classic) return classic;
 
         // Generisch: erstes Element, das nur aus Preistext besteht ...
-        const first = Array.from(card.querySelectorAll('p, span, div, strong, b'))
-            .find(el => el.children.length === 0 && isPriceOnly(el.textContent));
+        const first = Array.from(card.querySelectorAll('p, span, div, strong, b')).find(isPriceLeaf);
         if (!first) return null;
 
         // ... dann hoch bis zur Zeile, die noch ausschließlich Preise enthält
         // (z. B. "2 € VB" + durchgestrichener Altpreis "3.399 €"), aber keine km/EZ-Tags.
         let row = first;
-        while (row.parentElement && row.parentElement !== card && isPriceOnly(row.parentElement.textContent)) {
+        while (row.parentElement && row.parentElement !== card && isPriceOnly(textWithoutUi(row.parentElement))) {
             row = row.parentElement;
         }
         return row;
@@ -425,9 +446,11 @@
 
     function injectButtons() {
         const reported = loadReported();
+        ensureOverviewStyles();
 
         findAdCards().forEach(card => {
-            if (card.dataset.klmInjected) return;
+            // Schon da? Baut die Seite die Karte neu auf, fehlt der Button: dann neu einsetzen
+            if (card.dataset.klmInjected && card.querySelector('.klm-btn')) return;
             const info = getCardInfo(card);
             if (!info.href || !info.adId) return;
 
