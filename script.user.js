@@ -5,11 +5,13 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.4.2
+// @version       0.4.3
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
 // @downloadURL   https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js
+// @match         https://www.kleinanzeigen.de/
+// @match         https://www.kleinanzeigen.de/?*
 // @match         https://www.kleinanzeigen.de/s-*
 // @grant         none
 // @run-at        document-idle
@@ -18,7 +20,7 @@
 /*
  * Funktionsweise
  * --------------
- * 1. Übersicht (Suchergebnisse, /s-...):
+ * 1. Übersicht (Suchergebnisse, /s-..., und die Startseite):
  *    Jede Anzeigen-Karte bekommt neben dem Preis einen "Melden"-Button.
  *    Ein Klick öffnet ein kleines Menü direkt am Button: Baustein (Grund + Text) wählen,
  *    Text bei Bedarf anpassen, Meldung bestätigen, absenden.
@@ -120,7 +122,8 @@
 
     const path = window.location.pathname;
     const isDetailPage = path.startsWith('/s-anzeige/');
-    const isSearchPage = path.startsWith('/s-') && !isDetailPage;
+    // Übersicht: Suchergebnisse und Bestandslisten (/s-…) sowie die Startseite
+    const isSearchPage = (path === '/' || path.startsWith('/s-')) && !isDetailPage;
 
     // ------------------------------------------------------------------
     // Gemeinsame Helfer

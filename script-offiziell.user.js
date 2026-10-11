@@ -5,11 +5,13 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.3.2
+// @version       0.3.3
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js
 // @downloadURL   https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js
+// @match         https://www.kleinanzeigen.de/
+// @match         https://www.kleinanzeigen.de/?*
 // @match         https://www.kleinanzeigen.de/s-*
 // @grant         none
 // @run-at        document-idle
@@ -20,7 +22,7 @@
  *
  * Funktionsweise
  * --------------
- * 1. Übersicht (Suchergebnisse, /s-...):
+ * 1. Übersicht (Suchergebnisse, /s-..., und die Startseite):
  *    Jede Anzeigen-Karte bekommt neben dem Preis einen "Melden"-Button.
  *    Ein Klick öffnet die Anzeige in einem kleinen Popup-Fenster (URL-Hash #klm-report).
  *    Die Übersicht bleibt dabei unverändert offen. (Ein eingebettetes iframe ist nicht
@@ -91,7 +93,8 @@
 
     const path = window.location.pathname;
     const isDetailPage = path.startsWith('/s-anzeige/');
-    const isSearchPage = path.startsWith('/s-') && !isDetailPage;
+    // Übersicht: Suchergebnisse und Bestandslisten (/s-…) sowie die Startseite
+    const isSearchPage = (path === '/' || path.startsWith('/s-')) && !isDetailPage;
 
     // ------------------------------------------------------------------
     // Gemeinsame Helfer

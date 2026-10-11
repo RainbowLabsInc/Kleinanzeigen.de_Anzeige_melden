@@ -6,7 +6,7 @@
 
 **Unsaubere Anzeigen direkt aus der Suchergebnis-Übersicht melden, mit einem Klick und ohne die Liste zu verlassen.**
 
-[![Version](https://img.shields.io/badge/version-0.4.2-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
+[![Version](https://img.shields.io/badge/version-0.4.3-blue?style=flat-square)](https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script.user.js)
 [![Plattform](https://img.shields.io/badge/plattform-Kleinanzeigen.de-green?style=flat-square)](https://www.kleinanzeigen.de)
 [![Userscript](https://img.shields.io/badge/Tampermonkey-Violentmonkey-black?style=flat-square&logo=tampermonkey)](#%EF%B8%8F-installation)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
@@ -46,7 +46,7 @@ Es gibt das Script in zwei Varianten. Beide setzen denselben Button neben den Pr
 | Grund und Text | fertige, selbst konfigurierbare Bausteine | wählst du jedes Mal im Dialog |
 | Anfragen an Kleinanzeigen | sendet die Meldung selbst, genau wie der Dialog | sendet selbst nichts, alles läuft über den Dialog |
 | Gründe | direkt: „Verdächtiger oder betrügerischer Inhalt“; alle anderen über den offiziellen Dialog | alle |
-| Version | 0.4.2 | 0.3.2 |
+| Version | 0.4.3 | 0.3.3 |
 
 **Installiere bitte nur eine der beiden.** Sind doch beide aktiv, arbeitet nur die zuerst gestartete, die andere bleibt still. Die „Gemeldet“-Markierungen teilen sich beide, ein Wechsel geht also nichts verloren.
 
@@ -62,7 +62,7 @@ Es gibt das Script in zwei Varianten. Beide setzen denselben Button neben den Pr
 * 📌 **Übersicht bleibt, wo sie ist:** Kein Seitenwechsel, kein Zurück-Button. Scroll-Position, Filter und Seite bleiben erhalten.
 * ✅ **„Gemeldet“-Markierung:** Nach dem Absenden wird der Button grün und bleibt lokal in deinem Browser gespeichert. So meldest du nichts doppelt.
 * 🛡️ **Gleicher Weg wie der Dialog:** Das Script sendet nur die Meldung selbst, und zwar genau so, wie der offizielle Dialog sie sendet. Andere Anfragen an Kleinanzeigen stellt es nicht.
-* 🔒 **Strikt begrenzt:** Es läuft nur auf `https://www.kleinanzeigen.de` und dort nur auf Such- und Anzeigenseiten.
+* 🔒 **Strikt begrenzt:** Es läuft nur auf `https://www.kleinanzeigen.de` und dort nur auf der Startseite sowie auf Such- und Anzeigenseiten.
 
 ---
 
@@ -120,7 +120,7 @@ Direkt aus dem Menü lassen sich bisher die Unterpunkte von **„Verdächtiger o
 
 | Seite | Was passiert |
 |---|---|
-| Suchergebnisse (`/s-…`) | Das Script erkennt die Anzeigen-Karten über ihre Links auf `/s-anzeige/…` und setzt den Button in die Preiszeile. Nachgeladene Ergebnisse werden per `MutationObserver` ebenfalls erfasst. |
+| Suchergebnisse (`/s-…`) und Startseite | Das Script erkennt die Anzeigen-Karten über ihre Links auf `/s-anzeige/…` und setzt den Button in die Preiszeile. Nachgeladene Ergebnisse werden per `MutationObserver` ebenfalls erfasst. |
 | Klick auf „Melden“ | Das Menü öffnet sich. Im Hintergrund lädt das Script die Anzeigenseite, wie beim normalen Öffnen, und liest dort den Sicherheits-Token und deinen Namen aus. Das sind dieselben Werte, die der offizielle Dialog verwendet. |
 | Absenden | `POST /flags/ads/<Anzeigen-Nr>.json` mit Grund, Text und Name, dazu der Token als `x-csrf-token`. Genau diese Anfrage schickt auch der offizielle Dialog. |
 | „Offiziellen Melden-Dialog öffnen“ | Die Anzeige wird mit dem Hash `#klm-report` in einem Popup-Fenster geöffnet. Dasselbe Script erkennt den Hash, klickt auf „Anzeige melden“, hebt den Dialog hervor und meldet den Status per `postMessage` an die Übersicht zurück. |
@@ -152,6 +152,7 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 
 | Version | Änderungen |
 |---|---|
+| **0.4.3** | Auch auf der Startseite: Melden-Button an den Anzeigen dort (Variante „Offizieller Dialog“ 0.3.3 ebenso). Tampermonkey zeigt beim Update die zusätzliche Adresse an |
 | **0.4.2** | Bausteine: Bei abgelehnter Meldung zeigt das Menü die Antwort von Kleinanzeigen und nennt „schon gemeldet“ als mögliche Ursache |
 | **0.4.1** | Zweite Variante „Offizieller Dialog“ (`script-offiziell.user.js`, 0.3.2) zur freien Wahl; sind beide installiert, bleibt eine inaktiv |
 | **0.4.0** | Melden direkt in der Übersicht über ein Menü mit selbst konfigurierbaren Bausteinen; offizieller Dialog bleibt als Rückfall |
@@ -180,7 +181,7 @@ Bitte **keine** Cookies, Tokens oder persönlichen Daten mitschicken.
 * Es nutzt keine externen Server, alles läuft lokal in deinem Browser. Das Logo im Button ist direkt im Script eingebettet.
 * An Kleinanzeigen schickt es nur das, was auch beim normalen Melden passiert: die Anzeigenseite laden und die Meldung absenden, und zwar erst nach deinem Klick und deiner Bestätigung.
 * Bausteine, „Gemeldet“-Markierungen und dein zuletzt verwendeter Name liegen nur im Speicher deines Browsers für kleinanzeigen.de.
-* Es läuft **ausschließlich auf `https://www.kleinanzeigen.de`**, und dort nur auf Such- und Anzeigenseiten (`/s-…`). Auf allen anderen Websites ist es inaktiv.
+* Es läuft **ausschließlich auf `https://www.kleinanzeigen.de`**, und dort nur auf der Startseite sowie auf Such- und Anzeigenseiten (`/s-…`). Auf allen anderen Websites ist es inaktiv.
 * Inspiriert vom Aufbau des Userscripts [Kleinanzeigen.de – Anzeige duplizieren & neu einstellen](https://github.com/Zer089/Kleinanzeigen.de-Anzeige_duplizieren_neu_einstellen) von Zer089 (MIT).
 
 ---
