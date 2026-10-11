@@ -5,7 +5,7 @@
 // @author        RainbowlabsInc
 // @copyright     2026, RainbowlabsInc
 // @license       MIT
-// @version       0.3.4
+// @version       0.3.5
 // @icon          https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/assets/icon48.png
 // @homepage      https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden
 // @updateURL     https://github.com/RainbowLabsInc/Kleinanzeigen.de_Anzeige_melden/raw/main/script-offiziell.user.js
@@ -329,6 +329,7 @@
             .klm-price-row { display: flex !important; align-items: center; flex-wrap: wrap; gap: 8px; }
             /* Wrapper: der Button darin ist ein atomares Inline-Element und erbt so keine Link-Unterstreichung der Karte */
             .klm-wrap { margin-left: auto; display: block; }
+            .kx-btn-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin: 6px 0 0; }
             .klm-btn {
                 display: inline-flex; align-items: center; gap: 6px;
                 padding: 4px 12px; border-radius: 999px;
@@ -408,7 +409,8 @@
 
     function isPriceOnly(text) {
         const t = text.trim();
-        return t.length > 0 && /€|zu verschenken/i.test(t) && t.replace(pricePartsRe, '').replace(/\s+/g, '') === '';
+        // „VB“ allein (Verhandlungsbasis ohne Betrag) zählt auch als Preis
+        return t.length > 0 && (/€|zu verschenken/i.test(t) || /^vb$/i.test(t)) && t.replace(pricePartsRe, '').replace(/\s+/g, '') === '';
     }
 
     // Buttons dieses und anderer Scripts (Nutzer ausblenden, Superscript) beim Lesen des Preises
@@ -444,6 +446,23 @@
         return row;
     }
 
+    // Rückfall ohne Preiszeile (z. B. „VB“ ohne Betrag oder „Zu verschenken“ auf der Startseite,
+    // wo die Karte dann keinen Preis zeigt): eigene Button-Zeile unter dem Titel. Die Zeile
+    // (.kx-btn-row) teilen sich „Anzeige melden“ und „Nutzer ausblenden“, damit beide Buttons
+    // nebeneinander stehen.
+    function buttonRowFallback(card) {
+        const existing = card.querySelector('.kx-btn-row');
+        if (existing) return existing;
+        const title = card.querySelector('h2, h3, .text-module-begin a, .ellipsis');
+        if (!title) return null;
+        const link = title.closest('a');
+        const anchor = link && link !== card && card.contains(link) ? link : title;
+        const row = document.createElement('div');
+        row.className = 'kx-btn-row';
+        anchor.insertAdjacentElement('afterend', row);
+        return row;
+    }
+
     function injectButtons() {
         const reported = loadReported();
         ensureOverviewStyles();
@@ -454,7 +473,7 @@
             const info = getCardInfo(card);
             if (!info.href || !info.adId) return;
 
-            const row = findPriceRow(card);
+            const row = findPriceRow(card) || buttonRowFallback(card);
             if (!row) return;
             card.dataset.klmInjected = 'true';
 
